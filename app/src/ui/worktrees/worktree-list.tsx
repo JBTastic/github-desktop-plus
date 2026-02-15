@@ -5,6 +5,8 @@ import { IFilterListGroup, IFilterListItem } from '../lib/filter-list'
 import { SectionFilterList } from '../lib/section-filter-list'
 import { WorktreeListItem } from './worktree-list-item'
 import { Button } from '../lib/button'
+import { Octicon } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 import { IMatches } from '../../lib/fuzzy-find'
 import { ClickSource } from '../lib/list'
 import memoizeOne from 'memoize-one'
@@ -39,19 +41,6 @@ interface IWorktreeListProps {
 type WorktreeGroupIdentifier = 'main' | 'linked'
 
 export class WorktreeList extends React.Component<IWorktreeListProps> {
-  private renderItem = (item: IWorktreeListItem, matches: IMatches) => {
-    return (
-      <WorktreeListItem
-        worktree={item.worktree}
-        isCurrentWorktree={
-          this.props.currentWorktree !== null &&
-          this.props.currentWorktree.path === item.worktree.path
-        }
-        matches={matches}
-      />
-    )
-  }
-
   private getGroups = memoizeOne((worktrees: ReadonlyArray<WorktreeEntry>) => {
     const groups: Array<
       IFilterListGroup<IWorktreeListItem, WorktreeGroupIdentifier>
@@ -87,6 +76,19 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
     return groups
   })
 
+  private renderItem = (item: IWorktreeListItem, matches: IMatches) => {
+    return (
+      <WorktreeListItem
+        worktree={item.worktree}
+        isCurrentWorktree={
+          this.props.currentWorktree !== null &&
+          this.props.currentWorktree.path === item.worktree.path
+        }
+        matches={matches}
+      />
+    )
+  }
+
   private renderGroupHeader = (identifier: WorktreeGroupIdentifier) => {
     const label = identifier === 'main' ? 'Main Worktree' : 'Linked Worktrees'
     return <div className="filter-list-group-header">{label}</div>
@@ -101,7 +103,8 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         className="new-worktree-button"
         onClick={this.props.onCreateNewWorktree}
       >
-        New Worktree
+        <Octicon symbol={octicons.plus} className="mr" />
+        {__DARWIN__ ? 'New Worktree' : 'New worktree'}
       </Button>
     )
   }

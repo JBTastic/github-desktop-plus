@@ -54,8 +54,7 @@
   }
 
   .new-worktree-button {
-    margin: var(--spacing);
-    width: calc(100% - (var(--spacing) * 2));
+    flex-shrink: 0;
   }
 
   .no-items-found {
