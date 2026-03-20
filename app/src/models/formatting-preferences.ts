@@ -10,7 +10,7 @@ const localeCountryCode =
  * default to 24-hour for unlisted countries.
  */
 const twelveHourCountries = new Set([
-  'UK', // United Kingdom
+  'GB', // United Kingdom
   'IE', // Ireland
   'US', // United States
   'CA', // Canada (mixed, but 12-hour common)
