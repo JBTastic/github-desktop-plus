@@ -24,7 +24,7 @@ export class CopilotPreferences extends React.Component<ICopilotPreferencesProps
       <DialogContent>
         <div className="copilot-section">
           <h2 id="copilot-model-heading">
-            {__DARWIN__ ? 'Commit Message Model' : 'Commit message model'}
+            {__DARWIN__ ? 'Language Models' : 'Language models'}
           </h2>
           {this.renderModelPicker()}
         </div>
@@ -51,9 +51,7 @@ export class CopilotPreferences extends React.Component<ICopilotPreferencesProps
     return (
       <Select
         label={
-          __DARWIN__
-            ? 'Model Used for Commit Messages'
-            : 'Model used for commit messages'
+          __DARWIN__ ? 'Commit Message Generation' : 'Commit message generation'
         }
         value={selectedCopilotModel ?? DefaultCopilotModel}
         onChange={this.onModelChanged}
