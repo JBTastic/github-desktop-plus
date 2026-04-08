@@ -5676,17 +5676,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
 
       try {
-        const modelInfo =
-          this.selectedCopilotModel !== null
-            ? (this.copilotModels ?? []).find(
-                m => m.id === this.selectedCopilotModel
-              ) ?? null
-            : null
         const response = enableCopilotSdkCommitMessageGeneration(account)
           ? await this.copilotStore.generateCommitMessage(
               diff,
               repository.path,
-              modelInfo
+              this.selectedCopilotModel
             )
           : await API.fromAccount(account).getDiffChangesCommitMessage(diff)
 
