@@ -62,7 +62,8 @@ interface ICompareSidebarProps {
   readonly shasToHighlight: ReadonlyArray<string>
   readonly accounts: ReadonlyArray<Account>
   readonly preferAbsoluteDates: boolean
-}interface ICompareSidebarState {
+}
+interface ICompareSidebarState {
   /**
    * This branch should only be used when tracking interactions that the user is performing.
    *
