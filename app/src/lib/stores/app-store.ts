@@ -191,10 +191,6 @@ import {
   DEFAULT_BRANCH_SORT_ORDER,
 } from '../../models/branch-sort-order'
 import {
-  CommitDateDisplay,
-  defaultCommitDateDisplay,
-} from '../../models/commit-date-display'
-import {
   defaultDiffFontFamily,
   defaultDiffFontSize,
   DiffFontFamily,
@@ -536,7 +532,6 @@ export const showDiffCheckMarksKey = 'diff-check-marks-visible'
 export const showBranchNameInRepoListKey = 'show-branch-name-in-repo-list'
 const copyPathNormalizationKey = 'copy-path-normalization'
 const branchSortOrderKey = 'branch-sort-order'
-const commitDateDisplayKey = 'commit-date-display'
 
 const commitMessageGenerationDisclaimerLastSeenKey =
   'commit-message-generation-disclaimer-last-seen'
@@ -716,8 +711,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
     defaultCopyPathNormalization
 
   private branchSortOrder: BranchSortOrder = DEFAULT_BRANCH_SORT_ORDER
-
-  private commitDateDisplay: CommitDateDisplay = defaultCommitDateDisplay
 
   private cachedRepoRulesets = new Map<number, IAPIRepoRuleset>()
 
@@ -1293,7 +1286,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showBranchNameInRepoList: this.showBranchNameInRepoList,
       copyPathNormalization: this.copyPathNormalization,
       branchSortOrder: this.branchSortOrder,
-      commitDateDisplay: this.commitDateDisplay,
       updateState: updateStore.state,
       commitMessageGenerationDisclaimerLastSeen:
         this.commitMessageGenerationDisclaimerLastSeen,
@@ -2759,10 +2751,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.branchSortOrder =
       getEnum(branchSortOrderKey, BranchSortOrder) ?? DEFAULT_BRANCH_SORT_ORDER
-
-    this.commitDateDisplay =
-      getEnum(commitDateDisplayKey, CommitDateDisplay) ??
-      defaultCommitDateDisplay
 
     this.commitMessageGenerationDisclaimerLastSeen =
       getNumber(commitMessageGenerationDisclaimerLastSeenKey) ?? null
@@ -9681,14 +9669,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (branchSortOrder !== this.branchSortOrder) {
       this.branchSortOrder = branchSortOrder
       localStorage.setItem(branchSortOrderKey, branchSortOrder)
-      this.emitUpdate()
-    }
-  }
-
-  public _updateCommitDateDisplay(commitDateDisplay: CommitDateDisplay) {
-    if (commitDateDisplay !== this.commitDateDisplay) {
-      this.commitDateDisplay = commitDateDisplay
-      localStorage.setItem(commitDateDisplayKey, commitDateDisplay)
       this.emitUpdate()
     }
   }

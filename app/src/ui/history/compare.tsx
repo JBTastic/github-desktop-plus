@@ -30,7 +30,6 @@ import { PopupType } from '../../models/popup'
 import { getUniqueCoauthorsAsAuthors } from '../../lib/unique-coauthors-as-authors'
 import { getSquashedCommitDescription } from '../../lib/squash/squashed-commit-description'
 import { BranchSortOrder } from '../../models/branch-sort-order'
-import { CommitDateDisplay } from '../../models/commit-date-display'
 import { doMergeCommitsExistAfterCommit } from '../../lib/git'
 import { KeyboardInsertionData } from '../lib/list'
 import { Account } from '../../models/account'
@@ -50,7 +49,6 @@ interface ICompareSidebarProps {
   readonly currentBranch: Branch | null
   readonly selectedCommitShas: ReadonlyArray<string>
   readonly branchSortOrder: BranchSortOrder
-  readonly commitDateDisplay: CommitDateDisplay
   readonly onRevertCommit: (commit: Commit) => void
   readonly onAmendCommit: (commit: Commit, isLocalCommit: boolean) => void
   readonly onViewCommitOnGitHub: (sha: string) => void
@@ -339,9 +337,6 @@ export class CompareSidebar extends React.Component<
         keyboardReorderData={this.state.keyboardReorderData}
         accounts={this.props.accounts}
         dragSourceBranch={dragSourceBranch}
-        showAbsoluteDates={
-          this.props.commitDateDisplay === CommitDateDisplay.Absolute
-        }
       />
     )
   }

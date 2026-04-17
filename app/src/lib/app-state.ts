@@ -44,7 +44,6 @@ import { UncommittedChangesStrategy } from '../models/uncommitted-changes-strate
 import { ShowBranchNameInRepoListSetting } from '../models/show-branch-name-in-repo-list'
 import { CopyPathNormalization } from '../models/copy-path-normalization'
 import { BranchSortOrder } from '../models/branch-sort-order'
-import { CommitDateDisplay } from '../models/commit-date-display'
 import { DiffFontFamily } from '../models/diff-font'
 import { DragElement } from '../models/drag-drop'
 import { ILastThankYou } from '../models/last-thank-you'
@@ -422,9 +421,6 @@ export interface IAppState {
 
   /** Controls the sort order for branch lists in branch-selection views */
   readonly branchSortOrder: BranchSortOrder
-
-  /** Controls whether commit dates in the history list are shown as relative or absolute */
-  readonly commitDateDisplay: CommitDateDisplay
 
   /**
    * Cached repo rulesets. Used to prevent repeatedly querying the same

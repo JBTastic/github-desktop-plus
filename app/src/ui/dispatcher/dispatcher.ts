@@ -106,7 +106,6 @@ import { MergeTreeResult } from '../../models/merge'
 import { UncommittedChangesStrategy } from '../../models/uncommitted-changes-strategy'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
-import { CommitDateDisplay } from '../../models/commit-date-display'
 import { DiffFontFamily } from '../../models/diff-font'
 import { CopyPathNormalization } from '../../models/copy-path-normalization'
 import { IStashEntry } from '../../models/stash-entry'
@@ -4284,10 +4283,6 @@ export class Dispatcher {
 
   public setBranchSortOrder(branchSortOrder: BranchSortOrder) {
     return this.appStore._updateBranchSortOrder(branchSortOrder)
-  }
-
-  public setCommitDateDisplay(commitDateDisplay: CommitDateDisplay) {
-    return this.appStore._updateCommitDateDisplay(commitDateDisplay)
   }
 
   public testPruneBranches() {

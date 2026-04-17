@@ -39,7 +39,6 @@ import { Emoji } from '../lib/emoji'
 import { PopupType } from '../models/popup'
 import { Branch } from '../models/branch'
 import { BranchSortOrder } from '../models/branch-sort-order'
-import { CommitDateDisplay } from '../models/commit-date-display'
 
 interface IRepositoryViewProps {
   readonly repository: Repository
@@ -117,8 +116,6 @@ interface IRepositoryViewProps {
   ) => void
 
   readonly branchSortOrder: BranchSortOrder
-
-  readonly commitDateDisplay: CommitDateDisplay
 
   /** The user's preference of pull request suggested next action to use **/
   readonly pullRequestSuggestedNextAction?: PullRequestSuggestedNextAction
@@ -433,7 +430,6 @@ export class RepositoryView extends React.Component<
         isLocalRepository={remote === null}
         compareState={compareState}
         branchSortOrder={this.props.branchSortOrder}
-        commitDateDisplay={this.props.commitDateDisplay}
         selectedCommitShas={shas}
         shasToHighlight={compareState.shasToHighlight}
         currentBranch={currentBranch}
@@ -491,7 +487,6 @@ export class RepositoryView extends React.Component<
         isLocalRepository={remote === null}
         compareState={compareState}
         branchSortOrder={this.props.branchSortOrder}
-        commitDateDisplay={this.props.commitDateDisplay}
         selectedCommitShas={shas}
         shasToHighlight={compareState.shasToHighlight}
         currentBranch={currentBranch}

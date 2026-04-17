@@ -26,7 +26,6 @@ import { TitleBarStyle } from '../lib/title-bar-style'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Integrations } from './integrations'
 import { BranchSortOrder } from '../../models/branch-sort-order'
-import { CommitDateDisplay } from '../../models/commit-date-display'
 import { DiffFontFamily } from '../../models/diff-font'
 import {
   UncommittedChangesStrategy,
@@ -109,7 +108,6 @@ interface IPreferencesProps {
   readonly repositoryIndicatorsEnabled: boolean
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
   readonly branchSortOrder: BranchSortOrder
-  readonly commitDateDisplay: CommitDateDisplay
   readonly hideWindowOnQuit: boolean
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
@@ -168,7 +166,6 @@ interface IPreferencesState {
   readonly repositoryIndicatorsEnabled: boolean
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
   readonly branchSortOrder: BranchSortOrder
-  readonly commitDateDisplay: CommitDateDisplay
   readonly hideWindowOnQuit: boolean
 
   readonly initiallySelectedTheme: ApplicationTheme
@@ -253,7 +250,6 @@ export class Preferences extends React.Component<
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
       showBranchNameInRepoList: this.props.showBranchNameInRepoList,
       branchSortOrder: this.props.branchSortOrder,
-      commitDateDisplay: this.props.commitDateDisplay,
       hideWindowOnQuit: this.props.hideWindowOnQuit,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
@@ -637,8 +633,6 @@ export class Preferences extends React.Component<
             }
             branchSortOrder={this.state.branchSortOrder}
             onBranchSortOrderChanged={this.onBranchSortOrderChanged}
-            commitDateDisplay={this.state.commitDateDisplay}
-            onCommitDateDisplayChanged={this.onCommitDateDisplayChanged}
           />
         )
         break
@@ -902,12 +896,6 @@ export class Preferences extends React.Component<
     this.setState({ branchSortOrder })
   }
 
-  private onCopyPathNormalizationChanged = (
-    copyPathNormalization: CopyPathNormalization
-  ) => {
-    this.setState({ copyPathNormalization })
-  }
-
   private onCommitDateDisplayChanged = (
     commitDateDisplay: CommitDateDisplay
   ) => {
@@ -1168,7 +1156,6 @@ export class Preferences extends React.Component<
     dispatcher.setShowBranchNameInRepoList(this.state.showBranchNameInRepoList)
     dispatcher.setBranchSortOrder(this.state.branchSortOrder)
     dispatcher.setCommitDateDisplay(this.state.commitDateDisplay)
-    dispatcher.setCopyPathNormalization(this.state.copyPathNormalization)
 
     this.props.onDismissed()
   }
