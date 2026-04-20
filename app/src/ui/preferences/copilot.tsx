@@ -160,38 +160,18 @@ export class CopilotPreferences extends React.Component<ICopilotPreferencesProps
   }
 
   private renderBYOKProviders() {
+    const { byokProviders } = this.props
     return (
       <>
-        {this.props.byokProviders.length === 0 ? (
-          <p>
+        {byokProviders.length === 0 ? (
+          <p className="copilot-byok-empty">
             Add a custom provider to use your own API keys with
             OpenAI-compatible endpoints, Azure, Anthropic, or local providers
             like Ollama.
           </p>
         ) : (
           <ul className="copilot-byok-providers">
-            {this.props.byokProviders.map(p => (
-              <li key={p.id}>
-                <div className="copilot-byok-provider-info">
-                  <span className="copilot-byok-provider-name">{p.name}</span>
-                  <span className="copilot-byok-provider-meta">
-                    {p.type} · {p.baseUrl}
-                  </span>
-                </div>
-                <Button
-                  onClick={this.onEditBYOKProviderClick(p)}
-                  ariaLabel={`Edit ${p.name}`}
-                >
-                  Edit
-                </Button>
-                <Button
-                  onClick={this.onDeleteBYOKProviderClick(p)}
-                  ariaLabel={`Remove ${p.name}`}
-                >
-                  <Octicon symbol={octicons.trash} />
-                </Button>
-              </li>
-            ))}
+            {byokProviders.map(this.renderBYOKProvider)}
           </ul>
         )}
         <Button onClick={this.onAddBYOKProviderClick}>
@@ -199,5 +179,53 @@ export class CopilotPreferences extends React.Component<ICopilotPreferencesProps
         </Button>
       </>
     )
+  }
+
+  private renderBYOKProvider = (provider: IBYOKProvider) => {
+    const modelCount = provider.models.length
+    const modelLabel = modelCount === 1 ? '1 model' : `${modelCount} models`
+    const isLocal = provider.authKind === 'none'
+    const editLabel = __DARWIN__ ? 'Edit…' : 'Edit…'
+    return (
+      <li key={provider.id} className="copilot-byok-provider">
+        <div className="copilot-byok-provider-info">
+          <div className="copilot-byok-provider-title">
+            <span>{provider.name}</span>
+            {isLocal && (
+              <span className="copilot-byok-provider-badge">Local</span>
+            )}
+          </div>
+          <span className="copilot-byok-provider-meta">
+            {this.formatProviderType(provider)} · {modelLabel} ·{' '}
+            {provider.baseUrl}
+          </span>
+        </div>
+        <div className="copilot-byok-provider-actions">
+          <Button
+            onClick={this.onEditBYOKProviderClick(provider)}
+            ariaLabel={`Edit ${provider.name}`}
+          >
+            {editLabel}
+          </Button>
+          <Button
+            onClick={this.onDeleteBYOKProviderClick(provider)}
+            ariaLabel={`Remove ${provider.name}`}
+          >
+            <Octicon symbol={octicons.trash} />
+          </Button>
+        </div>
+      </li>
+    )
+  }
+
+  private formatProviderType(provider: IBYOKProvider): string {
+    switch (provider.type) {
+      case 'openai':
+        return 'OpenAI-compatible'
+      case 'azure':
+        return 'Azure'
+      case 'anthropic':
+        return 'Anthropic'
+    }
   }
 }
