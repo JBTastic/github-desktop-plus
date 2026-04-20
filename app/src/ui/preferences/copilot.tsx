@@ -89,7 +89,7 @@ export class CopilotPreferences extends React.Component<
           onTabClicked={this.onTabClicked}
         >
           <span>Models</span>
-          <span>{__DARWIN__ ? 'Custom Providers' : 'Custom providers'}</span>
+          <span>Providers</span>
         </TabBar>
         <div className="copilot-tab-content">
           <div className="copilot-section">{this.renderCurrentTab()}</div>
