@@ -15,6 +15,8 @@ interface IAddWorktreeDialogProps {
   readonly repository: Repository
   readonly dispatcher: Dispatcher
   readonly onDismissed: () => void
+  readonly initialBranchName?: string
+  readonly allBranchNames: ReadonlyArray<string>
 }
 
 interface IAddWorktreeDialogState {
@@ -32,7 +34,7 @@ export class AddWorktreeDialog extends React.Component<
 
     this.state = {
       path: '',
-      branchName: '',
+      branchName: props.initialBranchName ?? '',
       creating: false,
     }
   }
@@ -62,9 +64,13 @@ export class AddWorktreeDialog extends React.Component<
 
     this.setState({ creating: true })
 
+    const branchExists = this.props.allBranchNames.includes(branchName)
+
     try {
       await addWorktree(this.props.repository, path, {
-        createBranch: branchName.length > 0 ? branchName : undefined,
+        branch: branchExists ? branchName : undefined,
+        createBranch:
+          !branchExists && branchName.length > 0 ? branchName : undefined,
       })
     } catch (e) {
       this.props.dispatcher.postError(e)
@@ -114,8 +120,8 @@ export class AddWorktreeDialog extends React.Component<
 
           <Row>
             <RefNameTextBox
-              label={__DARWIN__ ? 'New Branch Name' : 'New branch name'}
-              initialValue=""
+              label={__DARWIN__ ? 'Branch Name' : 'Branch name'}
+              initialValue={this.state.branchName}
               onValueChange={this.onBranchNameChanged}
             />
           </Row>

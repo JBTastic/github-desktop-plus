@@ -2688,12 +2688,20 @@ export class App extends React.Component<IAppProps, IAppState> {
         )
       }
       case PopupType.AddWorktree: {
+        const allBranchNames =
+          this.state.selectedState?.type === SelectionType.Repository
+            ? this.state.selectedState.state.branchesState.allBranches.map(
+                b => b.name
+              )
+            : []
         return (
           <AddWorktreeDialog
             key="add-worktree"
             repository={popup.repository}
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
+            initialBranchName={popup.initialBranchName}
+            allBranchNames={allBranchNames}
           />
         )
       }

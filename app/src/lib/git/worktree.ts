@@ -88,7 +88,8 @@ export async function addWorktree(
 
   if (options.branch) {
     args.push(options.branch)
-  } else if (options.commitish) {
+  }
+  if (options.commitish) {
     args.push(options.commitish)
   }
 

@@ -8,6 +8,7 @@ interface IBranchContextMenuConfig {
   onViewBranchOnGitHub?: () => void
   onViewPullRequestOnGitHub?: () => void
   onDeleteBranch?: (branchName: string) => void
+  onCheckoutInNewWorktree?: (branchName: string) => void
 }
 
 export function generateBranchContextMenuItems(
@@ -20,6 +21,7 @@ export function generateBranchContextMenuItems(
     onViewBranchOnGitHub,
     onViewPullRequestOnGitHub,
     onDeleteBranch,
+    onCheckoutInNewWorktree,
   } = config
   const items = new Array<IMenuItem>()
 
@@ -47,6 +49,15 @@ export function generateBranchContextMenuItems(
     items.push({
       label: 'View Pull Request on GitHub',
       action: () => onViewPullRequestOnGitHub(),
+    })
+  }
+
+  if (onCheckoutInNewWorktree !== undefined) {
+    items.push({
+      label: __DARWIN__
+        ? 'Checkout in New Worktree…'
+        : 'Checkout in new worktree…',
+      action: () => onCheckoutInNewWorktree(name),
     })
   }
 
