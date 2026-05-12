@@ -221,7 +221,6 @@ import {
   TerminalOutput,
   HookProgress,
   git,
-  isGitError,
 } from '../git'
 import {
   installGlobalLFSFilters,
@@ -395,6 +394,7 @@ import {
   gatherCommitContext,
 } from '../copilot-conflict-context'
 import { resolveWithin } from '../path'
+import { WorktreeEntry } from '../../models/worktree'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 
@@ -4217,7 +4217,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const wt = repositoryState.worktrees.find(wt => wt.branch === branch.ref)
 
     if (wt) {
-      return this._switchWorktree(repository, wt.path)
+      return this._switchWorktree(repository, wt)
     }
 
     let strategy = explicitStrategy ?? this.uncommittedChangesStrategy
@@ -4261,19 +4261,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         .then(() => this.refreshAfterCheckout(repository, branch.name))
         .finally(() => this.updateCheckoutProgress(repository, null))
     })
-  }
-
-  /**
-   * If a checkout error is due to the branch being checked out in another
-   * worktree, extract and return that worktree's path. Returns undefined if the
-   * error is unrelated.
-   */
-  private parseWorktreeConflictError(e: unknown): string | undefined {
-    return isGitError(e)
-      ? coerceToString(e.result.stderr).match(
-          /fatal: '.*?' is already used by worktree at '(.+?)'/
-        )?.[1]
-      : undefined
   }
 
   /** Invoke the best checkout implementation for the selected strategy */
@@ -5675,16 +5662,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   public async _switchWorktree(
     repository: Repository,
-    worktreePath: string
+    worktree: WorktreeEntry
   ): Promise<Repository> {
-    const { kind } = await getRepositoryType(worktreePath).catch(e => {
+    const { kind } = await getRepositoryType(worktree.path).catch(e => {
       log.error('Could not determine repository type', e)
       return { kind: 'missing' } as RepositoryType
     })
 
     if (kind !== 'regular' && kind !== 'unsafe') {
       throw new Error(
-        `The worktree path '${worktreePath}' does not appear to be a valid Git repository.`
+        `The worktree path '${worktree.path}' does not appear to be a valid Git repository.`
       )
     }
 
@@ -5695,8 +5682,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const result = await this.repositoriesStore.switchWorktree(
       repository,
-      worktreePath,
+      worktree.path,
       missing
+    )
+
+    this.repositoryStateCache.seedFromWorktree(
+      result.repository,
+      repository,
+      worktree
     )
 
     await this._selectRepository(result.repository)
@@ -5713,14 +5706,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     if (isDeletingCurrentWorktree) {
       const worktrees = await listWorktrees(repository)
-      const mainPath = worktrees.find(wt => wt.type === 'main')?.path
+      const main = worktrees.find(wt => wt.type === 'main')
 
-      if (mainPath === undefined) {
+      if (main === undefined) {
         throw new Error('Could not find main worktree')
       }
 
-      await this._switchWorktree(repository, mainPath)
-      await removeWorktree(mainPath, worktreePath)
+      await this._switchWorktree(repository, main)
+      await removeWorktree(main.path, worktreePath)
     } else {
       await removeWorktree(repository.path, worktreePath)
     }

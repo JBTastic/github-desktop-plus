@@ -42,7 +42,7 @@ export class WorktreeDropdown extends React.Component<
     const { dispatcher, repository } = this.props
 
     dispatcher.closeFoldout(FoldoutType.Worktree)
-    await dispatcher.switchWorktree(repository, worktree.path)
+    await dispatcher.switchWorktree(repository, worktree)
   }
 
   private onWorktreeContextMenu = (

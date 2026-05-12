@@ -136,6 +136,7 @@ import {
   ICopilotConflictResolutionResponse,
   IConflictResolutionProgress,
 } from '../../lib/copilot-conflict-resolution'
+import { WorktreeEntry } from '../../models/worktree'
 
 /**
  * An error handler function.
@@ -1017,10 +1018,10 @@ export class Dispatcher {
    */
   public async switchWorktree(
     repository: Repository,
-    worktreePath: string
+    worktree: WorktreeEntry
   ): Promise<void> {
     await this.appStore
-      ._switchWorktree(repository, worktreePath)
+      ._switchWorktree(repository, worktree)
       .catch(e => this.postError(e))
   }
 

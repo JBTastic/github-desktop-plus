@@ -9,7 +9,7 @@ import { Button } from '../lib/button'
 import { Row } from '../lib/row'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { showOpenDialog } from '../main-process-proxy'
-import { addWorktree } from '../../lib/git/worktree'
+import { addWorktree, listWorktrees } from '../../lib/git/worktree'
 
 interface IAddWorktreeDialogProps {
   readonly repository: Repository
@@ -73,7 +73,18 @@ export class AddWorktreeDialog extends React.Component<
     }
 
     const { dispatcher, repository } = this.props
-    await dispatcher.switchWorktree(repository, path)
+    const worktrees = await listWorktrees(repository)
+    const worktree = worktrees.find(wt => wt.path === path)
+
+    if (!worktree) {
+      this.props.dispatcher.postError(
+        new Error('Failed to find the newly created worktree')
+      )
+      this.setState({ creating: false })
+      return
+    }
+
+    await dispatcher.switchWorktree(repository, worktree)
 
     this.setState({ creating: false })
     this.props.onDismissed()
