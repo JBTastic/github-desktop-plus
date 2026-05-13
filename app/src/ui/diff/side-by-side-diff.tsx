@@ -2282,6 +2282,7 @@ function getDataFromLine(
     diffLineNumber: line.originalLineNumber,
     noNewLineIndicator: line.noTrailingNewLine,
     tokens,
+    movedStatus: line.movedStatus,
   }
 }
 

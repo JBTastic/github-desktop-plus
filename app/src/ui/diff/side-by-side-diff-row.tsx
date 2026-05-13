@@ -313,8 +313,10 @@ export class SideBySideDiffRow extends React.Component<
         )
 
       case DiffRowType.Added: {
-        const { lineNumber, isSelected } = row.data
-        const rowClasses = classNames('added', baseRowClasses)
+        const { lineNumber, isSelected, movedStatus } = row.data
+        const rowClasses = classNames('added', baseRowClasses, {
+          'moved-to': movedStatus === 'moved-to',
+        })
         if (!showSideBySideDiff) {
           return (
             <div className={rowClasses} role="cell">
@@ -349,8 +351,10 @@ export class SideBySideDiffRow extends React.Component<
         )
       }
       case DiffRowType.Deleted: {
-        const { lineNumber, isSelected } = row.data
-        const rowClasses = classNames('deleted', baseRowClasses)
+        const { lineNumber, isSelected, movedStatus } = row.data
+        const rowClasses = classNames('deleted', baseRowClasses, {
+          'moved-from': movedStatus === 'moved-from',
+        })
         if (!showSideBySideDiff) {
           return (
             <div className={rowClasses} role="cell">
@@ -386,7 +390,10 @@ export class SideBySideDiffRow extends React.Component<
       }
       case DiffRowType.Modified: {
         const { beforeData: before, afterData: after } = row
-        const rowClasses = classNames('modified', baseRowClasses)
+        const rowClasses = classNames('modified', baseRowClasses, {
+          'has-moved-from': before.movedStatus === 'moved-from',
+          'has-moved-to': after.movedStatus === 'moved-to',
+        })
         return (
           <div className={rowClasses} role="cell">
             <div className={beforeClasses}>

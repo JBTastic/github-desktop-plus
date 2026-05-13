@@ -46,8 +46,7 @@ function mergeDiffHunks(hunk1: DiffHunk, hunk2: DiffHunk): DiffHunk {
     DiffLineType.Hunk,
     null,
     null,
-    null,
-    false
+    null
   )
 
   const newHunkLines = [
@@ -172,8 +171,7 @@ function createWholeFileContextDiff(
     DiffLineType.Hunk,
     null,
     null,
-    null,
-    false
+    null
   )
   const contextLines = newContentLines.map(
     (line, index) =>
@@ -183,7 +181,7 @@ function createWholeFileContextDiff(
         null,
         index + 1,
         index + 1,
-        false
+        null
       )
   )
   const lines = [headerLine, ...contextLines]
@@ -313,8 +311,7 @@ export function expandTextDiffHunk(
       // This null means this line doesn't exist in the original line
       null,
       newOldLineNumber,
-      newNewLineNumber,
-      false
+      newNewLineNumber
     )
   })
 
@@ -345,6 +342,7 @@ export function expandTextDiffHunk(
     null,
     firstHunkLine.oldLineNumber,
     firstHunkLine.newLineNumber,
+    null,
     firstHunkLine.noTrailingNewLine
   )
 
@@ -489,7 +487,7 @@ export function getTextDiffWithBottomDummyHunk(
     numberOfNewLines - dummyNewStartLine + 1
   )
   // Use an empty line for this dummy hunk to keep the diff clean
-  const dummyLine = new DiffLine('', DiffLineType.Hunk, null, null, null, false)
+  const dummyLine = new DiffLine('', DiffLineType.Hunk, null, null, null)
   const dummyHunk = new DiffHunk(
     dummyHeader,
     [dummyLine],

@@ -21,7 +21,7 @@ import {
   ILargeTextDiff,
 } from '../../models/diff'
 
-import { DiffParser } from '../diff-parser'
+import { DiffParser, preprocessColorMovedDiff } from '../diff-parser'
 import { getOldPathOrDefault } from '../get-old-path'
 import { readFile } from 'fs/promises'
 import { forceUnwrap } from '../fatal-error'
@@ -46,6 +46,34 @@ import { isAbsolute } from 'path'
  * a string.
  */
 const MaxDiffBufferSize = 70e6 // 70MB in decimal
+
+/**
+ * Git -c config overrides prepended before the subcommand to enable
+ * --color-moved detection with predictable ANSI color codes.
+ *
+ * We force specific colors so we can reliably detect moved lines by
+ * their ANSI escape sequence regardless of the user's git color config:
+ *   - magenta (35) for moved-from deleted lines
+ *   - cyan (36) for moved-to added lines
+ *
+ * These must come before the git subcommand ('diff', 'log', etc.).
+ */
+const colorMovedGitArgs = [
+  '-c',
+  'color.diff.meta=normal',
+  '-c',
+  'color.diff.frag=blue',
+  '-c',
+  'color.diff.context=normal',
+  '-c',
+  'color.diff.old=red',
+  '-c',
+  'color.diff.new=green',
+  '-c',
+  'color.diff.colorMovedFrom=magenta',
+  '-c',
+  'color.diff.colorMovedTo=cyan',
+]
 
 /**
  * Where `MaxDiffBufferSize` is a hard limit, this is a suggested limit. Diffs
@@ -118,6 +146,7 @@ export async function getCommitDiff(
   hideWhitespaceInDiff: boolean = false
 ): Promise<IDiff> {
   const args = [
+    ...colorMovedGitArgs,
     'log',
     commitish,
     ...(hideWhitespaceInDiff ? ['-w'] : []),
@@ -127,7 +156,8 @@ export async function getCommitDiff(
     '--patch-with-raw',
     '--format=',
     '-z',
-    '--no-color',
+    '--color=always',
+    '--color-moved=plain',
     '--',
     ensureRelativePath(file.path),
   ]
@@ -159,6 +189,7 @@ export async function getBranchMergeBaseDiff(
   latestCommit: string
 ): Promise<IDiff> {
   const args = [
+    ...colorMovedGitArgs,
     'diff',
     '--merge-base',
     baseBranchName,
@@ -166,7 +197,8 @@ export async function getBranchMergeBaseDiff(
     ...(hideWhitespaceInDiff ? ['-w'] : []),
     '--patch-with-raw',
     '-z',
-    '--no-color',
+    '--color=always',
+    '--color-moved=plain',
     '--',
     ensureRelativePath(file.path),
   ]
@@ -204,6 +236,7 @@ export async function getCommitRangeDiff(
   const oldestCommitRef = useNullTreeSHA ? NullTreeSHA : `${commits[0]}^`
   const latestCommit = commits.at(-1) ?? '' // can't be undefined since commits.length > 0
   const args = [
+    ...colorMovedGitArgs,
     'diff',
     oldestCommitRef,
     latestCommit,
@@ -211,7 +244,8 @@ export async function getCommitRangeDiff(
     '--patch-with-raw',
     '--format=',
     '-z',
-    '--no-color',
+    '--color=always',
+    '--color-moved=plain',
     '--',
     ensureRelativePath(file.path),
   ]
@@ -346,12 +380,14 @@ export async function getWorkingDirectoryDiff(
   // `--no-ext-diff` should be provided wherever we invoke `git diff` so that any
   // diff.external program configured by the user is ignored
   const args = [
+    ...colorMovedGitArgs,
     'diff',
     ...(hideWhitespaceInDiff ? ['-w'] : []),
     '--no-ext-diff',
     '--patch-with-raw',
     '-z',
-    '--no-color',
+    '--color=always',
+    '--color-moved=plain',
   ]
   const successExitCodes = new Set([0])
   const isSubmodule = file.status.submoduleStatus !== undefined
@@ -632,6 +668,8 @@ function parseLineEndingsWarning(error: Buffer): LineEndingsChange | undefined {
  * Utility function used by get(Commit|WorkingDirectory)Diff.
  *
  * Parses the output from a diff-like command that uses `--path-with-raw`
+ * Strips ANSI escape codes introduced by --color=always and extracts
+ * moved-line status for use in the rendered diff view.
  */
 function diffFromRawDiffOutput(output: Buffer): IRawDiff {
   // for now we just assume the diff is UTF-8, but given we have the raw buffer
@@ -639,8 +677,11 @@ function diffFromRawDiffOutput(output: Buffer): IRawDiff {
   const result = output.toString('utf-8')
 
   const pieces = result.split('\0')
+  const rawDiffText = forceUnwrap(`Invalid diff output`, pieces.at(-1))
+  const { cleanText, movedLines } = preprocessColorMovedDiff(rawDiffText)
+
   const parser = new DiffParser()
-  return parser.parse(forceUnwrap(`Invalid diff output`, pieces.at(-1)))
+  return parser.parse(cleanText, movedLines)
 }
 
 async function buildSubmoduleDiff(

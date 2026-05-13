@@ -436,6 +436,14 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   --diff-hunk-gutter-background-color: #{$blue-100};
   --diff-hunk-text-color: #{$gray-600};
 
+  --diff-moved-from-background-color: #{$yellow-000};
+  --diff-moved-from-border-color: #{$yellow-300};
+  --diff-moved-from-text-color: var(--diff-text-color);
+
+  --diff-moved-to-background-color: #{$purple-000};
+  --diff-moved-to-border-color: #{$purple-200};
+  --diff-moved-to-text-color: var(--diff-text-color);
+
   --diff-hover-background-color: #{$blue-300};
   --diff-hover-border-color: #{$blue-400};
   --diff-hover-gutter-color: #{$blue-400};

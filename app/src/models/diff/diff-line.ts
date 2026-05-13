@@ -6,6 +6,8 @@ export enum DiffLineType {
   Hunk,
 }
 
+export type DiffLineMovedStatus = 'moved-from' | 'moved-to'
+
 /** track details related to each line in the diff */
 export class DiffLine {
   public constructor(
@@ -16,6 +18,7 @@ export class DiffLine {
     public readonly originalLineNumber: number | null,
     public readonly oldLineNumber: number | null,
     public readonly newLineNumber: number | null,
+    public readonly movedStatus: DiffLineMovedStatus | null = null,
     public readonly noTrailingNewLine: boolean = false
   ) {}
 
@@ -26,6 +29,7 @@ export class DiffLine {
       this.originalLineNumber,
       this.oldLineNumber,
       this.newLineNumber,
+      this.movedStatus,
       noTrailingNewLine
     )
   }
@@ -46,7 +50,8 @@ export class DiffLine {
       this.originalLineNumber === other.originalLineNumber &&
       this.oldLineNumber === other.oldLineNumber &&
       this.newLineNumber === other.newLineNumber &&
-      this.noTrailingNewLine === other.noTrailingNewLine
+      this.noTrailingNewLine === other.noTrailingNewLine &&
+      this.movedStatus === other.movedStatus
     )
   }
 }

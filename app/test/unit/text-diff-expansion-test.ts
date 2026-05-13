@@ -52,7 +52,7 @@ async function prepareDiff(
   )
 
   const parser = new DiffParser()
-  const diff = parser.parse(result.stdout)
+  const diff = parser.parse(result.stdout, [])
   const textDiff: ITextDiff = {
     kind: DiffType.Text,
     text: diff.contents,

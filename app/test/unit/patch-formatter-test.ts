@@ -22,7 +22,7 @@ import { setupFixtureRepository } from '../helpers/repositories'
 
 async function parseDiff(diff: string): Promise<ITextDiff> {
   const parser = new DiffParser()
-  const rawDiff = parser.parse(diff)
+  const rawDiff = parser.parse(diff, [])
   const repository = new Repository('', -1, null, false)
   const fileChange = new FileChange('file.txt', {
     kind: AppFileStatusKind.Modified,

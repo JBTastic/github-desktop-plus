@@ -5,6 +5,7 @@ import {
   DiffLine,
   DiffLineType,
 } from '../models/diff'
+import { DiffLineMovedStatus } from '../models/diff/diff-line'
 import { assertNever } from '../lib/fatal-error'
 import { getHunkHeaderExpansionType } from '../ui/diff/text-diff-expansion'
 import { getLargestLineNumber } from '../ui/diff/diff-helpers'
@@ -21,6 +22,37 @@ import { getLargestLineNumber } from '../ui/diff/diff-helpers'
 // In many versions of GNU diff, each range can omit the comma and trailing value s,
 // in which case s defaults to 1
 const diffHeaderRe = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/
+
+const AnsiEscapeRe = /\x1b\[[0-9;]*m/g
+
+/**
+ * Pre-processes a diff that may contain ANSI color codes from git's
+ * --color-moved flag. Strips all ANSI escape sequences from the text
+ * and records which lines were colored as moved-from (magenta/35) or
+ * moved-to (cyan/36) — the two colors we force via git -c config.
+ *
+ * Lines with no ANSI moved-color code get a null entry.
+ */
+export function preprocessColorMovedDiff(text: string): {
+  readonly cleanText: string
+  readonly movedLines: ReadonlyArray<DiffLineMovedStatus | null>
+} {
+  const rawLines = text.split('\n')
+  const movedLines: Array<DiffLineMovedStatus | null> = rawLines.map(line => {
+    // ANSI 35 = magenta: deleted line that moved away from this location.
+    // Git may emit combined codes like \x1b[1;35m (bold+magenta), so we match
+    // 35 as a standalone SGR parameter (e.g. [35m or [1;35m or [35;1m).
+    if (/^\x1b\[(?:\d+;)*35(?:;\d+)*m-/.test(line)) {
+      return 'moved-from'
+    }
+    // ANSI 36 = cyan: added line that moved to this location.
+    if (/^\x1b\[(?:\d+;)*36(?:;\d+)*m\+/.test(line)) {
+      return 'moved-to'
+    }
+    return null
+  })
+  return { cleanText: text.replace(AnsiEscapeRe, ''), movedLines }
+}
 
 /**
  * Regular expression matching invisible bidirectional Unicode characters that
@@ -82,6 +114,19 @@ export class DiffParser {
    */
   private text!: string
 
+  /**
+   * 0-based index of the current line within the diff text. Incremented each
+   * time nextLine() successfully advances to a new line, allowing parseHunk to
+   * look up the moved status of the current line in this.movedLines.
+   */
+  private lineIndex!: number
+
+  /**
+   * Per-line moved status produced by preprocessColorMovedDiff. Indexed by the
+   * same 0-based line index tracked by lineIndex.
+   */
+  private movedLines!: ReadonlyArray<DiffLineMovedStatus | null>
+
   public constructor() {
     this.reset()
   }
@@ -95,6 +140,8 @@ export class DiffParser {
     this.ls = 0
     this.le = -1
     this.text = ''
+    this.lineIndex = -1
+    this.movedLines = []
   }
 
   /**
@@ -122,7 +169,11 @@ export class DiffParser {
 
     // We've succeeded if there's anything to read in between the
     // start and the end
-    return this.ls !== this.le
+    const hasContent = this.ls !== this.le
+    if (hasContent) {
+      this.lineIndex++
+    }
+    return hasContent
   }
 
   /**
@@ -344,6 +395,7 @@ export class DiffParser {
       diffLineNumber++
 
       let diffLine: DiffLine
+      const movedStatus = this.movedLines[this.lineIndex] ?? null
 
       if (c === DiffPrefixAdd) {
         diffLine = new DiffLine(
@@ -351,7 +403,8 @@ export class DiffParser {
           DiffLineType.Add,
           diffLineNumber,
           null,
-          rollingDiffAfterCounter++
+          rollingDiffAfterCounter++,
+          movedStatus
         )
       } else if (c === DiffPrefixDelete) {
         diffLine = new DiffLine(
@@ -359,7 +412,8 @@ export class DiffParser {
           DiffLineType.Delete,
           diffLineNumber,
           rollingDiffBeforeCounter++,
-          null
+          null,
+          movedStatus
         )
       } else if (c === DiffPrefixContext) {
         diffLine = new DiffLine(
@@ -395,9 +449,16 @@ export class DiffParser {
    * @param text A unified diff produced by git diff, git log --patch
    *             or any other git plumbing command that produces unified
    *             diffs.
+   * @param movedLines Per-line moved status from preprocessColorMovedDiff.
+   *                   When provided, Add/Delete lines receive the appropriate
+   *                   movedStatus based on their position in the diff text.
    */
-  public parse(text: string): IRawDiff {
+  public parse(
+    text: string,
+    movedLines: ReadonlyArray<DiffLineMovedStatus | null>
+  ): IRawDiff {
     this.text = text
+    this.movedLines = movedLines
 
     try {
       const headerInfo = this.parseDiffHeader()

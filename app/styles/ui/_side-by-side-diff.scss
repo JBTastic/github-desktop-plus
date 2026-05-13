@@ -211,6 +211,28 @@
       }
     }
 
+    &.moved-from .before,
+    &.has-moved-from .before {
+      color: var(--diff-moved-from-text-color);
+      background: var(--diff-moved-from-background-color);
+
+      .line-number {
+        background: var(--diff-moved-from-gutter-background-color);
+        border-color: var(--diff-moved-from-border-color);
+      }
+    }
+
+    &.moved-to .after,
+    &.has-moved-to .after {
+      color: var(--diff-moved-to-text-color);
+      background: var(--diff-moved-to-background-color);
+
+      .line-number {
+        background: var(--diff-moved-to-gutter-background-color);
+        border-color: var(--diff-moved-to-border-color);
+      }
+    }
+
     &.context .before,
     &.context .after {
       background: var(--diff-background-color);

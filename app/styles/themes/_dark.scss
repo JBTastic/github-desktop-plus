@@ -334,6 +334,14 @@ body.theme-dark {
   --diff-hunk-gutter-background-color: #{darken($gray-900, 6%)};
   --diff-hunk-text-color: var(--text-secondary-color);
 
+  --diff-moved-from-background-color: #{darken($yellow-900, 10%)};
+  --diff-moved-from-border-color: #{darken($yellow-800, 5%)};
+  --diff-moved-from-text-color: var(--diff-text-color);
+
+  --diff-moved-to-background-color: #{darken($purple-900, 5%)};
+  --diff-moved-to-border-color: #{$purple-700};
+  --diff-moved-to-text-color: var(--diff-text-color);
+
   --diff-hover-background-color: #{$blue-500};
   --diff-hover-border-color: #{$blue-400};
   --diff-hover-gutter-color: #{$blue-400};

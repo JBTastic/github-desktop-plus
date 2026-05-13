@@ -10,6 +10,7 @@ import {
 } from '../../models/status'
 import { DiffHunk, DiffHunkExpansionType } from '../../models/diff/raw-diff'
 import { DiffLineType, ILargeTextDiff, ITextDiff } from '../../models/diff'
+import { DiffLineMovedStatus } from '../../models/diff/diff-line'
 
 /**
  * DiffRowType defines the different types of
@@ -68,6 +69,12 @@ export interface IDiffRowData {
    * Array of tokens to do syntax highlighting on the diff line.
    */
   readonly tokens: ReadonlyArray<ILineTokens>
+
+  /**
+   * Whether this line was detected as moved (rather than genuinely
+   * added or deleted) via git's --color-moved flag.
+   */
+  readonly movedStatus: DiffLineMovedStatus | null
 }
 
 /**
