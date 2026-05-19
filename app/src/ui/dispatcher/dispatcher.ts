@@ -1030,10 +1030,11 @@ export class Dispatcher {
    */
   public async deleteWorktree(
     repository: Repository,
-    worktreePath: string
+    worktreePath: string,
+    force?: boolean
   ): Promise<void> {
     await this.appStore
-      ._deleteWorktree(repository, worktreePath)
+      ._deleteWorktree(repository, worktreePath, force)
       .catch(e => this.postError(e))
   }
 

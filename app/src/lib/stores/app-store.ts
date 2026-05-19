@@ -5706,9 +5706,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See 'Dispatcher'. */
   public async _deleteWorktree(
     repository: Repository,
-    worktreePath: string
+    worktreePath: string,
+    force?: boolean
   ): Promise<void> {
     const isDeletingCurrentWorktree = repository.path === worktreePath
+    let path = repository.path
 
     if (isDeletingCurrentWorktree) {
       const worktrees = await listWorktrees(repository)
@@ -5719,9 +5721,22 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
 
       await this._switchWorktree(repository, main)
-      await removeWorktree(main.path, worktreePath)
-    } else {
-      await removeWorktree(repository.path, worktreePath)
+      // Run the delete worktree action with the main worktree path since the current
+      // worktree path will be deleted after the switch.
+      path = main.path
+    }
+
+    try {
+      await removeWorktree(path, worktreePath, force)
+    } catch (e) {
+      this._closePopup(PopupType.DeleteWorktree)
+      this._closePopup(PopupType.DeleteWorktreeFailed)
+      this._showPopup({
+        type: PopupType.DeleteWorktreeFailed,
+        repository,
+        worktreePath,
+        error: e,
+      })
     }
 
     await this._refreshWorktrees(repository)

@@ -114,6 +114,7 @@ export enum PopupType {
   EditCopilotBYOKProvider = 'EditCopilotBYOKProvider',
   EditCopilotBYOKModel = 'EditCopilotBYOKModel',
   ConfirmDeleteCopilotBYOKProvider = 'ConfirmDeleteCopilotBYOKProvider',
+  DeleteWorktreeFailed = 'DeleteWorktreeFailed',
 }
 
 interface IBasePopup {
@@ -515,5 +516,11 @@ export type PopupDetail =
       type: PopupType.DeleteWorktree
       repository: Repository
       worktreePath: string
+    }
+  | {
+      type: PopupType.DeleteWorktreeFailed
+      repository: Repository
+      worktreePath: string
+      error: Error
     }
 export type Popup = IBasePopup & PopupDetail
