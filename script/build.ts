@@ -456,7 +456,7 @@ function copyDependencies() {
     // - leave only exe and dll files for Windows platforms
     // - on macOS, delete exe and dll files and also linux-test-proxy and lxc-exec
     // - on Linux, delete exe and dll files and also mxc-exec-mac
-    const mxcArchSubdirPath = path.join(mxcDir, getDistArchitecture()!)
+    const mxcArchSubdirPath = path.join(mxcDir, currentArch)
     const mxcFiles = readdirSync(mxcArchSubdirPath)
     const isWindowsBinary = (file: string) =>
       file.endsWith('.exe') || file.endsWith('.dll')
