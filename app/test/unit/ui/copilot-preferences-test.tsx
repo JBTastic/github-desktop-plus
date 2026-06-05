@@ -11,11 +11,11 @@ import {
   encodeModelKey,
   type IBYOKProvider,
 } from '../../../src/lib/copilot/byok'
-import { ModelInfo } from '@github/copilot-sdk'
+import { Model } from '@github/copilot-sdk/dist/generated/rpc'
 
 function makeModel(
-  overrides: Partial<ModelInfo> & Pick<ModelInfo, 'id' | 'name'>
-): ModelInfo {
+  overrides: Partial<Model> & Pick<Model, 'id' | 'name'>
+): Model {
   return {
     capabilities: {
       supports: { vision: false, reasoningEffort: false },
@@ -48,13 +48,10 @@ const usageBilledModel = makeModel({
       inputPrice: 500,
       outputPrice: 2500,
     },
-    // HACK(copilot-sdk): this `as any` should be removed when we update to the
-    // fixed @github/copilot-sdk version that includes the new billing fields in
-    // the ModelInfo type
-  } as any,
+  },
 })
 
-const models: ReadonlyArray<ModelInfo> = [
+const models: ReadonlyArray<Model> = [
   defaultModel,
   otherModel,
   usageBilledModel,

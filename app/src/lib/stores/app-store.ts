@@ -396,7 +396,7 @@ import {
 } from '../copilot-conflict-context'
 import { resolveWithin } from '../path'
 import { WorktreeEntry } from '../../models/worktree'
-import { ModelInfo } from '@github/copilot-sdk'
+import { Model } from '@github/copilot-sdk/dist/generated/rpc'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 
@@ -687,7 +687,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private showChangesFilter: boolean = false
 
   private selectedCopilotModels: CopilotModelSelections = {}
-  private copilotModels: ReadonlyArray<ModelInfo> | null = null
+  private copilotModels: ReadonlyArray<Model> | null = null
   private byokProviders: ReadonlyArray<IBYOKProvider> = []
 
   public constructor(

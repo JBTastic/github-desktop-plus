@@ -22,11 +22,11 @@ import { Row } from '../lib/row'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { TabBar } from '../tab-bar'
-import { ModelInfo } from '@github/copilot-sdk'
+import { Model } from '@github/copilot-sdk/dist/generated/rpc'
 
 interface ICopilotPreferencesProps {
   readonly selectedCopilotModels: CopilotModelSelections
-  readonly copilotModels: ReadonlyArray<ModelInfo> | null
+  readonly copilotModels: ReadonlyArray<Model> | null
   readonly copilotAvailable: boolean
   readonly byokProviders: ReadonlyArray<IBYOKProvider>
   readonly showBYOKSettings: boolean
@@ -164,7 +164,7 @@ export class CopilotPreferences extends React.Component<
   }
 
   private renderFeatureModelPicker(
-    copilotModels: ReadonlyArray<ModelInfo>,
+    copilotModels: ReadonlyArray<Model>,
     feature: CopilotFeature,
     label: string,
     onChange: (model: string) => void
@@ -190,7 +190,7 @@ export class CopilotPreferences extends React.Component<
   }
 
   private resolveSelectionValue(
-    copilotModels: ReadonlyArray<ModelInfo>,
+    copilotModels: ReadonlyArray<Model>,
     byokProviders: ReadonlyArray<IBYOKProvider>,
     raw: string | null
   ): string {
@@ -213,7 +213,7 @@ export class CopilotPreferences extends React.Component<
   }
 
   private getFirstSelectableModelValue(
-    copilotModels: ReadonlyArray<ModelInfo>,
+    copilotModels: ReadonlyArray<Model>,
     byokProviders: ReadonlyArray<IBYOKProvider>
   ): string {
     if (copilotModels.length === 0 && byokProviders.length === 0) {

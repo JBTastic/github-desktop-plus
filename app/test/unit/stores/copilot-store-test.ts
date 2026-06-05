@@ -1,4 +1,5 @@
-import type { CopilotSession, ModelInfo } from '@github/copilot-sdk'
+import type { CopilotSession } from '@github/copilot-sdk'
+import { Model } from '@github/copilot-sdk/dist/generated/rpc'
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import {
@@ -10,11 +11,10 @@ import {
   isCopilotConflictResolutionAbortError,
   runConflictResolutionTurn,
 } from '../../../src/lib/stores/copilot-store'
-import { Model } from '@github/copilot-sdk/dist/generated/rpc'
 
 function makeModel(
-  overrides: Partial<ModelInfo> & Pick<ModelInfo, 'id' | 'name'>
-): ModelInfo {
+  overrides: Partial<Model> & Pick<Model, 'id' | 'name'>
+): Model {
   return {
     capabilities: {
       supports: { vision: false, reasoningEffort: false },
@@ -188,17 +188,12 @@ describe('getPreferredDefaultModel', () => {
       billing: {
         tokenPrices: {
           batchSize: 1000000,
-          default: {
-            cachePrice: 50,
-            contextMax: 200000,
-            inputPrice: 500,
-            outputPrice: 2500,
-          },
+          cachePrice: 50,
+          contextMax: 200000,
+          inputPrice: 500,
+          outputPrice: 2500,
         },
-        // HACK(copilot-sdk): this `as any` should be removed when we update to the
-        // fixed @github/copilot-sdk version that includes the new billing fields in
-        // the ModelInfo type
-      } as any,
+      },
     })
     const premiumRequestsBilled = makeModel({
       id: 'premium-requests-billed',
@@ -232,14 +227,8 @@ describe('getCopilotModelWithTemporaryMockUsageBilling', () => {
             outputPrice: 2500,
           },
         },
-        // HACK(copilot-sdk): this `as any` should be removed when we update to the
-        // fixed @github/copilot-sdk version that includes the new billing fields in
-        // the ModelInfo type
-      } as any,
-      // HACK(copilot-sdk): this `as any` should be removed when we update to the
-      // fixed @github/copilot-sdk version that includes the new billing fields in
-      // the ModelInfo type
-    }) as Model
+      },
+    })
 
     const billing = model.billing
     assert.ok(billing !== undefined)

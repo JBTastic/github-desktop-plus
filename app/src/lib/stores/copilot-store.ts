@@ -6,7 +6,6 @@ import {
 import type {
   AssistantMessageEvent,
   MessageOptions,
-  ModelInfo,
   SessionConfig,
 } from '@github/copilot-sdk'
 import { AccountsStore } from './accounts-store'
@@ -44,6 +43,7 @@ import { BaseStore } from './base-store'
 import { IRepoRulesMetadataRule } from '../../models/repo-rules'
 import { pathExists } from '../path-exists'
 import { enableCopilotSdkCommitMessageGeneration } from '../feature-flag'
+import { Model } from '@github/copilot-sdk/dist/generated/rpc'
 
 /** The default model ID used for Copilot commit message generation. */
 export const DefaultCopilotModel = 'gpt-5-mini'
@@ -339,7 +339,7 @@ export function formatReasoningEffort(effort: ReasoningEffort): string {
  * undefined if the model does not support reasoning effort configuration.
  */
 export function getLowestReasoningEffort(
-  model: ModelInfo
+  model: Model
 ): ReasoningEffort | undefined {
   const supported = model.supportedReasoningEfforts
   if (!supported || supported.length === 0) {
@@ -355,7 +355,7 @@ export function getLowestReasoningEffort(
  * effort at all (so we don't forward an unsupported value to the SDK).
  */
 export function getSupportedReasoningEffort(
-  model: ModelInfo,
+  model: Model,
   preferred: ReasoningEffort
 ): ReasoningEffort | undefined {
   return model.supportedReasoningEfforts?.includes(preferred)
@@ -371,8 +371,8 @@ export function getSupportedReasoningEffort(
  * Returns null if the model list is empty.
  */
 export function getPreferredDefaultModel(
-  models: ReadonlyArray<ModelInfo>
-): ModelInfo | null {
+  models: ReadonlyArray<Model>
+): Model | null {
   if (models.length === 0) {
     return null
   }
@@ -595,9 +595,9 @@ export async function runConflictResolutionTurn(
 export class CopilotStore extends BaseStore {
   private currentAccount: Account | null = null
 
-  private cachedModels: ReadonlyArray<ModelInfo> | null = null
+  private cachedModels: ReadonlyArray<Model> | null = null
   private modelsCachedAt: number = 0
-  private modelsInFlight: Promise<ReadonlyArray<ModelInfo> | null> | null = null
+  private modelsInFlight: Promise<ReadonlyArray<Model> | null> | null = null
 
   public constructor(private readonly accountsStore: AccountsStore) {
     super()
@@ -1172,7 +1172,7 @@ export class CopilotStore extends BaseStore {
    * Returns the last-fetched model list without triggering a refresh.
    * Null if models have never been fetched.
    */
-  public get cachedModelList(): ReadonlyArray<ModelInfo> | null {
+  public get cachedModelList(): ReadonlyArray<Model> | null {
     return this.cachedModels
   }
 
@@ -1185,7 +1185,7 @@ export class CopilotStore extends BaseStore {
    * cache). Callers should distinguish this from an empty array, which
    * would mean Copilot legitimately reports no models.
    */
-  public async listModels(): Promise<ReadonlyArray<ModelInfo> | null> {
+  public async listModels(): Promise<ReadonlyArray<Model> | null> {
     if (
       this.currentAccount === null ||
       !enableCopilotSdkCommitMessageGeneration(this.currentAccount)
@@ -1209,11 +1209,11 @@ export class CopilotStore extends BaseStore {
    * we know about right now use this entry point and treat "unavailable"
    * the same as "empty list".
    */
-  private async getCachedModels(): Promise<ReadonlyArray<ModelInfo>> {
+  private async getCachedModels(): Promise<ReadonlyArray<Model>> {
     return (await this.listModels()) ?? []
   }
 
-  private async fetchAndCacheModels(): Promise<ReadonlyArray<ModelInfo> | null> {
+  private async fetchAndCacheModels(): Promise<ReadonlyArray<Model> | null> {
     // Deduplicate concurrent fetches — if one is already in flight, reuse it.
     if (this.modelsInFlight !== null) {
       return this.modelsInFlight
@@ -1231,12 +1231,19 @@ export class CopilotStore extends BaseStore {
     }
   }
 
-  private async fetchModels(): Promise<ReadonlyArray<ModelInfo> | null> {
+  private async fetchModels(): Promise<ReadonlyArray<Model> | null> {
     const client = await this.createClient()
 
     try {
       await client.start()
-      const models = await client.listModels()
+      // HACK(copilot-sdk): using `Model` (from RPC API) instead of `ModelInfo`
+      // in order to get the new billing metadata fields that are not available
+      // yet in the `ModelInfo` type returned by `CopilotClient.listModels()`.
+      // This is safe because CopilotClient just force-casts the RPC response
+      // (a list of `Model`) to `ModelInfo`, so the underlying data is the same
+      // and we just get more fields by using the RPC type directly.
+      // We should can switch back to `ModelInfo` once the SDK updates its types.
+      const models: ReadonlyArray<Model> = await client.listModels()
       this.cachedModels = models
       this.modelsCachedAt = Date.now()
       return models

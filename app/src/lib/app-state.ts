@@ -62,7 +62,7 @@ import { IAPIRepoRuleset } from './api'
 import { ICustomIntegration } from './custom-integration'
 import { Emoji } from './emoji'
 import { IUpdateState } from '../ui/lib/update-store'
-import { ModelInfo } from '@github/copilot-sdk'
+import { Model } from '@github/copilot-sdk/dist/generated/rpc'
 
 export enum SelectionType {
   Repository,
@@ -417,7 +417,7 @@ export interface IAppState {
    * The list of available Copilot models fetched from the SDK.
    * Null when the list has not been fetched yet.
    */
-  readonly copilotModels: ReadonlyArray<ModelInfo> | null
+  readonly copilotModels: ReadonlyArray<Model> | null
 
   /** Whether Copilot is available (i.e. a GitHub.com account is signed in). */
   readonly copilotAvailable: boolean
