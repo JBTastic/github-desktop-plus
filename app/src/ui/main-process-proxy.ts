@@ -182,6 +182,16 @@ export const openRepositoryInNewWindow = sendProxy(
 /** Tell the main process to update the current window title */
 export const setWindowTitle = sendProxy('set-window-title', 1)
 
+/**
+ * Tell the main process which repository (if any) is currently selected in this
+ * window. This allows the main process to route CLI/second-instance
+ * `open-repository` actions to the window that already has the repository open.
+ */
+export const setWindowSelectedRepository = sendProxy(
+  'set-window-selected-repository',
+  1
+)
+
 /** Subscribes to auto updater error events originating from the main process */
 export function onAutoUpdaterError(
   errorHandler: (evt: Electron.IpcRendererEvent, error: Error) => void

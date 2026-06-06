@@ -73,6 +73,7 @@ import {
   uninstallWindowsCLI,
   openRepositoryInNewWindow,
   setWindowTitle,
+  setWindowSelectedRepository,
 } from './main-process-proxy'
 import { DiscardChanges } from './discard-changes'
 import { Welcome } from './welcome'
@@ -1120,11 +1121,19 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
 
     this.updateWindowTitle()
+    this.updateSelectedRepository()
   }
 
   public componentDidUpdate(prevProps: IAppProps, prevState: IAppState): void {
     if (this.getWindowTitle(prevState) !== this.getWindowTitle()) {
       this.updateWindowTitle()
+    }
+
+    if (
+      this.getSelectedRepositoryPath(prevState) !==
+      this.getSelectedRepositoryPath()
+    ) {
+      this.updateSelectedRepository()
     }
   }
 
@@ -1147,6 +1156,16 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private updateWindowTitle() {
     setWindowTitle(this.getWindowTitle())
+  }
+
+  private getSelectedRepositoryPath(
+    state: IAppState = this.state
+  ): string | null {
+    return state.selectedState?.repository.path ?? null
+  }
+
+  private updateSelectedRepository() {
+    setWindowSelectedRepository(this.getSelectedRepositoryPath())
   }
 
   /**

@@ -71,6 +71,7 @@ describe('IPC channel contract', () => {
     'uninstall-windows-cli',
     'open-repository-in-new-window',
     'set-window-title',
+    'set-window-selected-repository',
     'restart-app',
   ] as const
 
