@@ -1,6 +1,7 @@
 import * as React from 'react'
 import memoizeOne from 'memoize-one'
 
+import { formatNumber } from '../../lib/format-number'
 import { DefaultCopilotModel } from '../../lib/stores/copilot-store'
 import { type IBYOKProvider, encodeModelKey } from '../../lib/copilot/byok'
 import { IFilterListGroup, IFilterListItem } from './filter-list'
@@ -33,8 +34,28 @@ interface ICopilotModelListItem extends IFilterListItem {
   readonly isDefault: boolean
 }
 
+interface ICopilotModelPickerTokenPriceDetails {
+  readonly batchSize: string
+  readonly inputPrice: string
+  readonly cachePrice: string
+  readonly outputPrice: string
+}
+
+export interface ICopilotModelPickerSelectionInfo {
+  readonly name: string
+  readonly modelPickerCategory: string | null
+  readonly summary: string
+  readonly contextWindow: string | null
+  readonly reasoningEffortLevels: string | null
+  readonly tokenPriceDetails: ICopilotModelPickerTokenPriceDetails
+}
+
 const ModelPickerCompactRowHeight = 30
 const ModelPickerSubtitleRowHeight = 46
+const AIModelCreditNumberFormat = {
+  thousandsSeparator: ',' as const,
+  decimalSeparator: '.' as const,
+}
 
 const getPremiumRequestsBillingLabel = (billing: ModelBilling | undefined) => {
   const multiplier = billing?.multiplier
@@ -49,6 +70,55 @@ const formatModelPickerCategoryHeader = (category: string) => {
   return `${formattedCategory.charAt(0).toUpperCase()}${formattedCategory.slice(
     1
   )}`
+}
+
+const formatCompactNumber = (value: number) => {
+  if (Number.isInteger(value)) {
+    return value.toString()
+  }
+
+  return value.toFixed(1).replace(/\.0$/, '')
+}
+
+const formatTokenBatchSize = (tokenCount: number) => {
+  if (tokenCount >= 1_000_000) {
+    return `${formatCompactNumber(tokenCount / 1_000_000)}M`
+  }
+
+  if (tokenCount >= 1_000) {
+    return `${formatCompactNumber(tokenCount / 1_000)}K`
+  }
+
+  return tokenCount.toString()
+}
+
+const formatReasoningEffortLevels = (
+  supportedReasoningEfforts: ReadonlyArray<string> | undefined
+) => {
+  if (
+    supportedReasoningEfforts === undefined ||
+    supportedReasoningEfforts.length === 0
+  ) {
+    return null
+  }
+
+  return supportedReasoningEfforts.length === 1
+    ? '1 level'
+    : `${supportedReasoningEfforts.length} levels`
+}
+
+const formatAIModelCreditAmount = (value: number) =>
+  formatNumber(value, AIModelCreditNumberFormat)
+
+const getContextWindowTokenCount = (
+  promptTokenBudget: number | undefined,
+  outputContextTokenCount: number | undefined,
+  maxContextWindowTokens: number | undefined
+) => {
+  return promptTokenBudget === undefined ||
+    outputContextTokenCount === undefined
+    ? maxContextWindowTokens
+    : promptTokenBudget + outputContextTokenCount
 }
 
 const getModelPickerPriceCategory = (item: ICopilotModelListItem) => {
@@ -75,16 +145,18 @@ const getListItemSubtitle = (item: ICopilotModelListItem) => {
 export const getCopilotModelPickerSelectionInfo = (
   copilotModels: ReadonlyArray<Model>,
   value: string
-) => {
+): ICopilotModelPickerSelectionInfo | null => {
   const selectedModel = copilotModels.find(
     model => encodeModelKey({ kind: 'copilot', modelId: model.id }) === value
   )
   const billing = selectedModel?.billing as ModelBilling | undefined
+  const tokenPrices = billing?.tokenPrices
   const modelPickerPriceCategory =
     selectedModel?.modelPickerPriceCategory?.trim()
 
   if (
-    billing?.tokenPrices === undefined ||
+    selectedModel === undefined ||
+    tokenPrices === undefined ||
     modelPickerPriceCategory === undefined ||
     modelPickerPriceCategory.length === 0
   ) {
@@ -96,11 +168,39 @@ export const getCopilotModelPickerSelectionInfo = (
     modelPickerPriceCategory
   )}`
 
-  return modelPickerCategory === undefined || modelPickerCategory.length === 0
-    ? useOfCredits
-    : `${formatModelPickerCategoryHeader(
-        modelPickerCategory
-      )} model. ${useOfCredits}`
+  const summary =
+    modelPickerCategory === undefined || modelPickerCategory.length === 0
+      ? useOfCredits
+      : `${formatModelPickerCategoryHeader(
+          modelPickerCategory
+        )} model. ${useOfCredits}`
+  const contextWindowTokenCount = getContextWindowTokenCount(
+    tokenPrices.contextMax,
+    selectedModel.capabilities.limits?.max_output_tokens,
+    selectedModel.capabilities.limits?.max_context_window_tokens
+  )
+
+  return {
+    name: selectedModel.name,
+    modelPickerCategory:
+      modelPickerCategory === undefined || modelPickerCategory.length === 0
+        ? null
+        : formatModelPickerCategoryHeader(modelPickerCategory),
+    summary,
+    contextWindow:
+      contextWindowTokenCount === undefined
+        ? null
+        : formatTokenBatchSize(contextWindowTokenCount),
+    reasoningEffortLevels: formatReasoningEffortLevels(
+      selectedModel.supportedReasoningEfforts
+    ),
+    tokenPriceDetails: {
+      batchSize: formatTokenBatchSize(tokenPrices.batchSize ?? 0),
+      inputPrice: formatAIModelCreditAmount(tokenPrices.inputPrice ?? 0),
+      cachePrice: formatAIModelCreditAmount(tokenPrices.cachePrice ?? 0),
+      outputPrice: formatAIModelCreditAmount(tokenPrices.outputPrice ?? 0),
+    },
+  }
 }
 
 const getCopilotModelTitle = (item: ICopilotModelListItem) => {

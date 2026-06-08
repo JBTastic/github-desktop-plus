@@ -46,15 +46,20 @@ const otherModel = makeModel({
 const usageBilledModel = makeModel({
   id: 'usage-billed-model',
   name: 'Usage Billed Model',
+  capabilities: {
+    supports: { vision: false, reasoningEffort: true },
+    limits: { max_output_tokens: 64000 },
+  },
+  supportedReasoningEfforts: ['low', 'medium', 'high'],
   modelPickerCategory: 'lightweight',
   modelPickerPriceCategory: 'low',
   billing: {
     tokenPrices: {
       batchSize: 1000000,
-      cachePrice: 50,
+      cachePrice: 20,
       contextMax: 200000,
-      inputPrice: 500,
-      outputPrice: 2500,
+      inputPrice: 200,
+      outputPrice: 1200,
     },
   },
 })
@@ -272,7 +277,42 @@ describe('CopilotPreferences', () => {
     assert.ok(within(button).getByText('Usage Billed Model'))
     assert.strictEqual(within(button).queryByText(/Use of credits/), null)
     assert.ok(screen.getByText('Lightweight model. Use of credits: low'))
+    assert.strictEqual(screen.queryByText('AI credits per 1M tokens'), null)
     assert.ok(!button.textContent?.includes('low cost'))
+
+    const costsButton = screen.getByRole('button', {
+      name: 'Show Copilot model credit costs',
+    })
+
+    assert.strictEqual(costsButton.getAttribute('aria-expanded'), 'false')
+
+    fireEvent.click(costsButton)
+
+    assert.strictEqual(costsButton.getAttribute('aria-expanded'), 'true')
+    assert.strictEqual(screen.queryByRole('button', { name: 'Close' }), null)
+
+    const costsPopover = view.container.querySelector(
+      '.copilot-model-picker-cost-details'
+    )
+    assert.ok(costsPopover instanceof HTMLElement)
+
+    assert.ok(within(costsPopover).getByText('Usage Billed Model'))
+    assert.ok(within(costsPopover).getByText('Lightweight'))
+    assert.ok(within(costsPopover).getByText('Context'))
+    assert.ok(within(costsPopover).getByText('264K'))
+    assert.ok(within(costsPopover).getByText('Reasoning'))
+    assert.ok(within(costsPopover).getByText('3 levels'))
+    assert.ok(screen.getByText('AI credits per 1M tokens'))
+    assert.ok(screen.getByText('Input'))
+    assert.ok(screen.getByText('200'))
+    assert.ok(screen.getByText('Cached input'))
+    assert.ok(screen.getByText('20'))
+    assert.ok(screen.getByText('Output'))
+    assert.ok(screen.getByText('1,200'))
+
+    fireEvent.keyDown(costsButton, { key: 'Escape' })
+
+    assert.strictEqual(screen.queryByText('AI credits per 1M tokens'), null)
   })
 
   it('treats legacy bare-string selections as Copilot models', () => {
