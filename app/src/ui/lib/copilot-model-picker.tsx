@@ -32,8 +32,8 @@ interface ICopilotModelListItem extends IFilterListItem {
   readonly isDefault: boolean
 }
 
-const ModelPickerCompactRowHeight = 36
-const ModelPickerSubtitleRowHeight = 54
+const ModelPickerCompactRowHeight = 30
+const ModelPickerSubtitleRowHeight = 46
 
 const getPremiumRequestsBillingLabel = (billing: ModelBilling | undefined) => {
   const multiplier = billing?.multiplier
