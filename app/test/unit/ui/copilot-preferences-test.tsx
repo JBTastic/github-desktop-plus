@@ -235,10 +235,27 @@ describe('CopilotPreferences', () => {
 
   it('renders a Copilot group with the available models', async () => {
     const view = render(<CopilotPreferences {...defaults()} />)
+    const modelPickerButton = getModelPickerButton(view.container)
 
-    fireEvent.click(getModelPickerButton(view.container))
+    assert.strictEqual(modelPickerButton.getAttribute('aria-expanded'), 'false')
+    assert.strictEqual(
+      modelPickerButton.getAttribute('aria-haspopup'),
+      'dialog'
+    )
+    assert.strictEqual(modelPickerButton.getAttribute('aria-controls'), null)
+
+    fireEvent.click(modelPickerButton)
 
     await waitFor(() => assert.ok(screen.getByText('Claude Sonnet (2x)')))
+    assert.strictEqual(modelPickerButton.getAttribute('aria-expanded'), 'true')
+
+    const controlledContentId = modelPickerButton.getAttribute('aria-controls')
+    assert.ok(controlledContentId !== null)
+
+    const controlledContent = document.getElementById(controlledContentId)
+    assert.ok(controlledContent instanceof HTMLElement)
+    assert.ok(controlledContent.classList.contains('popover-dropdown-content'))
+
     assert.strictEqual(screen.queryByText('GitHub Copilot'), null)
     assert.ok(document.querySelector('.popover-component'))
     assert.strictEqual(document.querySelector('.popover-tip'), null)
@@ -369,7 +386,10 @@ describe('CopilotPreferences', () => {
 
     assert.ok(within(costsPopover).getByText('AI credits per 1M tokens'))
     assert.ok(within(costsPopover).getByText('200'))
-    assert.strictEqual(within(costsPopover).getAllByText('Unavailable').length, 2)
+    assert.strictEqual(
+      within(costsPopover).getAllByText('Unavailable').length,
+      2
+    )
   })
 
   it('omits the cost details button when token batch size is missing', () => {
