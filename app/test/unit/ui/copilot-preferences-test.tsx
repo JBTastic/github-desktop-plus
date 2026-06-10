@@ -29,9 +29,12 @@ import { setNumberFormatPreference } from '../../../src/models/formatting-prefer
 interface IAccountOptions {
   readonly isCopilotDesktopEnabled?: boolean
   readonly copilotLicenseType?: string
+  readonly endpoint?: string
+  readonly id?: number
+  readonly login?: string
 }
 
-function makeDotComAccount(options: IAccountOptions = {}): Account {
+function makeAccount(options: IAccountOptions = {}): Account {
   const isCopilotDesktopEnabled =
     'isCopilotDesktopEnabled' in options
       ? options.isCopilotDesktopEnabled
@@ -42,12 +45,12 @@ function makeDotComAccount(options: IAccountOptions = {}): Account {
       : 'COPILOT_INDIVIDUAL'
 
   return new Account(
-    'mona',
-    'https://api.github.com',
+    options.login ?? 'mona',
+    options.endpoint ?? 'https://api.github.com',
     'token',
     [],
     '',
-    1,
+    options.id ?? 1,
     'Mona Lisa',
     'free',
     'https://copilot-proxy.githubusercontent.com',
@@ -230,7 +233,7 @@ function defaults() {
   return {
     selectedCopilotModels: {},
     copilotModels: models,
-    dotComAccount: makeDotComAccount(),
+    accounts: [makeAccount()],
     byokProviders: [],
     showBYOKSettings: false,
     onDotComSignIn: () => {},
@@ -305,7 +308,7 @@ describe('CopilotPreferences', () => {
       <CopilotPreferences
         {...defaults()}
         copilotModels={null}
-        dotComAccount={null}
+        accounts={[]}
         onDotComSignIn={() => {
           called += 1
         }}
@@ -331,10 +334,12 @@ describe('CopilotPreferences', () => {
     render(
       <CopilotPreferences
         {...defaults()}
-        dotComAccount={makeDotComAccount({
-          isCopilotDesktopEnabled: undefined,
-          copilotLicenseType: undefined,
-        })}
+        accounts={[
+          makeAccount({
+            isCopilotDesktopEnabled: undefined,
+            copilotLicenseType: undefined,
+          }),
+        ]}
       />
     )
 
@@ -348,9 +353,11 @@ describe('CopilotPreferences', () => {
     render(
       <CopilotPreferences
         {...defaults()}
-        dotComAccount={makeDotComAccount({
-          copilotLicenseType: 'NO_ACCESS',
-        })}
+        accounts={[
+          makeAccount({
+            copilotLicenseType: 'NO_ACCESS',
+          }),
+        ]}
         onOpenCopilotPlans={() => {
           called += 1
         }}
@@ -374,9 +381,11 @@ describe('CopilotPreferences', () => {
     const view = render(
       <CopilotPreferences
         {...defaults()}
-        dotComAccount={makeDotComAccount({
-          isCopilotDesktopEnabled: false,
-        })}
+        accounts={[
+          makeAccount({
+            isCopilotDesktopEnabled: false,
+          }),
+        ]}
         showBYOKSettings={true}
         onOpenCopilotFeatureSettings={() => {
           called += 1
@@ -400,6 +409,49 @@ describe('CopilotPreferences', () => {
       view.container.querySelectorAll('[role="tab"]').length,
       0
     )
+  })
+
+  it('uses Copilot when any account has Copilot enabled', () => {
+    render(
+      <CopilotPreferences
+        {...defaults()}
+        accounts={[
+          makeAccount({ copilotLicenseType: 'NO_ACCESS' }),
+          makeAccount({
+            endpoint: 'https://enterprise.example.com/api/v3',
+            id: 2,
+            login: 'octo',
+            isCopilotDesktopEnabled: true,
+            copilotLicenseType: 'COPILOT_BUSINESS',
+          }),
+        ]}
+      />
+    )
+
+    assert.ok(screen.getByRole('button', { name: /GPT-5 mini/ }))
+    assert.strictEqual(screen.queryByText('View Copilot plans'), null)
+  })
+
+  it('keeps checking while another account may still have Copilot access', () => {
+    render(
+      <CopilotPreferences
+        {...defaults()}
+        accounts={[
+          makeAccount({ copilotLicenseType: 'NO_ACCESS' }),
+          makeAccount({
+            endpoint: 'https://enterprise.example.com/api/v3',
+            id: 2,
+            login: 'octo',
+            isCopilotDesktopEnabled: undefined,
+            copilotLicenseType: undefined,
+          }),
+        ]}
+      />
+    )
+
+    assert.ok(screen.getByText('Checking Copilot access…'))
+    assert.strictEqual(screen.queryByRole('combobox'), null)
+    assert.strictEqual(screen.queryByText('View Copilot plans'), null)
   })
 
   it('shows loading message when models not yet fetched', () => {

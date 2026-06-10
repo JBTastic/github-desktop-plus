@@ -31,7 +31,7 @@ import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
 interface ICopilotPreferencesProps {
   readonly selectedCopilotModels: CopilotModelSelections
   readonly copilotModels: ReadonlyArray<Model> | null
-  readonly dotComAccount: Account | null
+  readonly accounts: ReadonlyArray<Account>
   readonly byokProviders: ReadonlyArray<IBYOKProvider>
   readonly showBYOKSettings: boolean
   readonly onDotComSignIn: () => void
@@ -57,6 +57,7 @@ type CopilotAccessState =
   | 'desktop-disabled'
   | 'enabled'
 
+const CopilotLicenseTypeNoAccess = 'NO_ACCESS'
 export class CopilotPreferences extends React.Component<
   ICopilotPreferencesProps,
   ICopilotPreferencesState
@@ -137,22 +138,44 @@ export class CopilotPreferences extends React.Component<
   }
 
   private getCopilotAccessState(): CopilotAccessState {
-    const account = this.props.dotComAccount
-
-    if (account === null) {
+    if (this.props.accounts.length === 0) {
       return 'signed-out'
     }
 
-    if (account.copilotLicenseType === 'NO_ACCESS') {
-      return 'no-license'
+    let hasCheckingAccount = false
+    let hasNoAccessAccount = false
+    let hasDesktopDisabledAccount = false
+
+    for (const account of this.props.accounts) {
+      if (
+        account.isCopilotDesktopEnabled === true &&
+        account.copilotLicenseType !== CopilotLicenseTypeNoAccess
+      ) {
+        return 'enabled'
+      }
+
+      if (
+        account.copilotLicenseType === undefined ||
+        account.isCopilotDesktopEnabled === undefined
+      ) {
+        hasCheckingAccount = true
+      } else if (account.copilotLicenseType === CopilotLicenseTypeNoAccess) {
+        hasNoAccessAccount = true
+      } else if (account.isCopilotDesktopEnabled === false) {
+        hasDesktopDisabledAccount = true
+      }
     }
 
-    if (account.isCopilotDesktopEnabled === false) {
+    if (hasCheckingAccount) {
+      return 'checking'
+    }
+
+    if (hasDesktopDisabledAccount) {
       return 'desktop-disabled'
     }
 
-    if (account.isCopilotDesktopEnabled === true) {
-      return 'enabled'
+    if (hasNoAccessAccount) {
+      return 'no-license'
     }
 
     return 'checking'

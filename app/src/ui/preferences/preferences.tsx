@@ -529,12 +529,11 @@ export class Preferences extends React.Component<
         break
       }
       case PreferencesTab.Copilot:
-        const dotComAccount = this.props.accounts.find(isDotComAccount) ?? null
         View = (
           <CopilotPreferences
             selectedCopilotModels={this.state.selectedCopilotModels}
             copilotModels={this.props.copilotModels}
-            dotComAccount={dotComAccount}
+            accounts={this.props.accounts}
             byokProviders={this.props.byokProviders}
             showBYOKSettings={this.shouldShowBYOKSettings()}
             onDotComSignIn={this.onDotComSignIn}
@@ -888,8 +887,7 @@ export class Preferences extends React.Component<
   }
 
   private shouldShowBYOKSettings(): boolean {
-    const account = this.props.accounts.find(isDotComAccount)
-    return account ? enableCopilotSdkCommitMessageGeneration(account) : false
+    return this.props.accounts.some(enableCopilotSdkCommitMessageGeneration)
   }
 
   private onAddBYOKProvider = () => {
@@ -1108,9 +1106,7 @@ export class Preferences extends React.Component<
   }
 
   private get isCopilotSdkEnabled(): boolean {
-    return this.props.accounts
-      .filter(isDotComAccount)
-      .some(enableCopilotSdkCommitMessageGeneration)
+    return this.props.accounts.some(enableCopilotSdkCommitMessageGeneration)
   }
 
   private tabToVisualIndex(tab: PreferencesTab): number {
