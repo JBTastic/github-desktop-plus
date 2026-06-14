@@ -100,7 +100,7 @@ describe('CopilotPreferences', () => {
     const view = render(<CopilotPreferences {...defaults()} />)
 
     const optgroups = view.container.querySelectorAll('optgroup')
-    assert.strictEqual(optgroups.length, 1)
+    assert.strictEqual(optgroups.length, 2)
     assert.strictEqual(optgroups[0].label, 'GitHub Copilot')
 
     const options = view.container.querySelectorAll('option')
@@ -157,7 +157,12 @@ describe('CopilotPreferences', () => {
     const labels = Array.from(view.container.querySelectorAll('optgroup')).map(
       g => g.label
     )
-    assert.deepStrictEqual(labels, ['GitHub Copilot', 'Ollama'])
+    assert.deepStrictEqual(labels, [
+      'GitHub Copilot',
+      'Ollama',
+      'GitHub Copilot',
+      'Ollama',
+    ])
   })
 
   it('selects the default Copilot model when no model is selected', () => {
