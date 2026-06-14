@@ -37,9 +37,8 @@ export function generateWorktreeContextMenuItems(
     action: () => clipboard.writeText(path),
   })
 
-  items.push({ type: 'separator' })
-
   if (onRemoveWorktree !== undefined) {
+    items.push({ type: 'separator' })
     items.push({
       label: 'Delete…',
       action: () => onRemoveWorktree(path),
