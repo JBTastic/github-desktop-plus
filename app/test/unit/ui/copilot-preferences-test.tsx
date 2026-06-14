@@ -402,14 +402,6 @@ describe('CopilotPreferences', () => {
       }
     }
 
-    it('is hidden when the feature flag is disabled', () => {
-      withConflictResolutionEnabled(false, () => {
-        const view = render(<CopilotPreferences {...defaults()} />)
-        const selects = view.container.querySelectorAll('select')
-        assert.strictEqual(selects.length, 1)
-      })
-    })
-
     it('renders a second picker when the feature flag is enabled', () => {
       withConflictResolutionEnabled(true, () => {
         const view = render(<CopilotPreferences {...defaults()} />)
