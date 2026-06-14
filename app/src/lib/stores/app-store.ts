@@ -237,6 +237,8 @@ import {
   appendIgnoreFile,
   getRepositoryType,
   RepositoryType,
+  listWorktrees,
+  removeWorktree,
   getCommitRangeDiff,
   getCommitRangeChangedFiles,
   updateRemoteHEAD,
@@ -250,7 +252,6 @@ import {
   HookProgress,
   getConfigValueWithOrigin,
   IConfigValueOrigin,
-  listWorktrees,
   unstageAll,
   git,
 } from '../git'
@@ -438,6 +439,7 @@ import {
   gatherCommitContext,
 } from '../copilot-conflict-context'
 import { resolveWithin } from '../path'
+import { WorktreeEntry } from '../../models/worktree'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 
@@ -3021,8 +3023,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const toolbarButtonsMinWidth =
       defaultPushPullButtonWidth +
       defaultBranchDropdownWidth +
-      (this.showWorktrees ? defaultWorktreeDropdownWidth : 0)
-    const numButtons = 2 + (this.showWorktrees ? 1 : 0)
+      defaultWorktreeDropdownWidth
 
     // Start with all the available width
     let available = window.innerWidth
@@ -3064,28 +3065,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
     this.stashedFilesWidth = constrain(this.stashedFilesWidth, 100, filesMax)
 
-    // Allocate worktree first (highest priority), then branch, then
+    // Allocate branch first (highest priority), then worktree, then
     // push-pull. Each subsequent allocation uses the clamped value of the
     // previous to prevent the total from exceeding the available space.
-    const worktreeDropdownMax =
-      available - defaultBranchDropdownWidth - defaultPushPullButtonWidth
-    const minimumWorktreeDropdownWidth =
-      defaultWorktreeDropdownWidth > available / numButtons
-        ? available / numButtons - 10
-        : defaultWorktreeDropdownWidth
-    this.worktreeDropdownWidth = constrain(
-      this.worktreeDropdownWidth,
-      minimumWorktreeDropdownWidth,
-      worktreeDropdownMax
-    )
-
     const branchDropdownMax =
-      available -
-      (this.showWorktrees ? clamp(this.worktreeDropdownWidth) : 0) -
-      defaultPushPullButtonWidth
+      available - defaultWorktreeDropdownWidth - defaultPushPullButtonWidth
     const minimumBranchDropdownWidth =
-      defaultBranchDropdownWidth > available / numButtons
-        ? available / numButtons - 10
+      defaultBranchDropdownWidth > available / 3
+        ? available / 3 - 10
         : defaultBranchDropdownWidth
     this.branchDropdownWidth = constrain(
       this.branchDropdownWidth,
@@ -3093,13 +3080,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
       branchDropdownMax
     )
 
+    const worktreeDropdownMax =
+      available - clamp(this.branchDropdownWidth) - defaultPushPullButtonWidth
+    this.worktreeDropdownWidth = constrain(
+      this.worktreeDropdownWidth,
+      Math.min(available / 3 - 10, 170),
+      worktreeDropdownMax
+    )
+
     const pushPullButtonMaxWidth =
       available -
-      (this.showWorktrees ? clamp(this.worktreeDropdownWidth) : 0) -
-      clamp(this.branchDropdownWidth)
+      clamp(this.branchDropdownWidth) -
+      clamp(this.worktreeDropdownWidth)
     const minimumPushPullToolBarWidth =
-      defaultPushPullButtonWidth > available / numButtons
-        ? available / numButtons - 10
+      defaultPushPullButtonWidth > available / 3
+        ? available / 3
         : defaultPushPullButtonWidth
     this.pushPullButtonWidth = constrain(
       this.pushPullButtonWidth,
@@ -4374,6 +4369,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       gitStore.updateLastFetched(),
       gitStore.loadStashEntries(),
       this._refreshAuthor(repository),
+      this._refreshWorktrees(repository),
       refreshSectionPromise,
     ])
 
@@ -4712,6 +4708,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
   }
 
+  private async _refreshWorktrees(repository: Repository): Promise<void> {
+    try {
+      const worktrees = await listWorktrees(repository)
+      this.repositoryStateCache.update(repository, () => ({ worktrees }))
+      this.statsStore.recordWorktreeCount(worktrees.length)
+      this.emitUpdate()
+    } catch (e) {
+      log.error('Failed to refresh worktrees', e)
+    }
+  }
+
   public _updateCommitOptions(
     repository: Repository,
     commitOptions: Partial<CommitOptions>
@@ -4900,6 +4907,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return repository
     }
 
+    // If the branch is checked out in another worktree, switch to that worktree
+    // instead of checking out the branch in the current worktree.
+    const wt = repositoryState.worktrees.find(wt => wt.branch === branch.ref)
+
+    if (wt) {
+      return this._switchWorktree(repository, wt)
+    }
+
     let strategy = explicitStrategy ?? this.uncommittedChangesStrategy
 
     // Always move changes to new branch if we're on a detached head, unborn
@@ -4930,7 +4945,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       // up-to-date information to the user.
       return this.checkoutImplementation(repository, branch, strategy)
         .then(() => this.onSuccessfulCheckout(repository, branch))
-        .catch(e => this.emitError(new CheckoutError(e, repository, branch)))
+        .catch(async e => {
+          this.emitError(new CheckoutError(e, repository, branch))
+        })
         .then(() => this.refreshAfterCheckout(repository, branch.name))
         .finally(() => this.updateCheckoutProgress(repository, null))
     })
@@ -6552,6 +6569,92 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
 
     return Promise.resolve()
+  }
+
+  /**
+   * Switch the repository to a different worktree. This shouldn't be called
+   * directly. See `Dispatcher`.
+   *
+   * If the target worktree path is already registered as a separate repository,
+   * that repository is selected instead of modifying the current one.
+   */
+  public async _switchWorktree(
+    repository: Repository,
+    worktree: WorktreeEntry
+  ): Promise<Repository> {
+    const { kind } = await getRepositoryType(worktree.path).catch(e => {
+      log.error('Could not determine repository type', e)
+      return { kind: 'missing' } as RepositoryType
+    })
+
+    if (kind !== 'regular' && kind !== 'unsafe') {
+      throw new Error(
+        `The worktree path '${worktree.path}' does not appear to be a valid Git repository.`
+      )
+    }
+
+    // If the repository path isn't trusted we'll mark the repository as
+    // missing. The missing repository view knows how to add a path to the
+    // allow list.
+    const missing = kind === 'unsafe'
+
+    const result = await this.repositoriesStore.switchWorktree(
+      repository,
+      worktree.path,
+      missing
+    )
+
+    this.repositoryStateCache.seedFromWorktree(
+      result.repository,
+      repository,
+      worktree
+    )
+
+    await this._selectRepository(result.repository)
+
+    this.statsStore.increment('worktreeSwitchCount')
+
+    return result.repository
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _deleteWorktree(
+    repository: Repository,
+    worktreePath: string,
+    force?: boolean
+  ): Promise<void> {
+    const isDeletingCurrentWorktree = repository.path === worktreePath
+    let path = repository.path
+
+    if (isDeletingCurrentWorktree) {
+      const worktrees = await listWorktrees(repository)
+      const main = worktrees.find(wt => wt.type === 'main')
+
+      if (main === undefined) {
+        throw new Error('Could not find main worktree')
+      }
+
+      await this._switchWorktree(repository, main)
+      // Run the delete worktree action with the main worktree path since the current
+      // worktree path will be deleted after the switch.
+      path = main.path
+    }
+
+    try {
+      await removeWorktree(path, worktreePath, force)
+    } catch (e) {
+      this._closePopup(PopupType.DeleteWorktree)
+      this._closePopup(PopupType.DeleteWorktreeFailed)
+      this._showPopup({
+        type: PopupType.DeleteWorktreeFailed,
+        repository,
+        worktreePath,
+        error: e,
+      })
+    }
+
+    await this._refreshWorktrees(repository)
+    this.statsStore.increment('worktreeDeletedCount')
   }
 
   public _setWorktreeDropdownWidth(width: number): Promise<void> {

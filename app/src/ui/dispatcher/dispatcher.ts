@@ -146,6 +146,7 @@ import {
   ICopilotConflictResolutionResponse,
   IConflictResolutionProgress,
 } from '../../lib/copilot-conflict-resolution'
+import { WorktreeEntry } from '../../models/worktree'
 
 /**
  * An error handler function.
@@ -1151,6 +1152,35 @@ export class Dispatcher {
 
   public resetWorktreeDropdownWidth(): Promise<void> {
     return this.appStore._resetWorktreeDropdownWidth()
+  }
+
+  /**
+   * Switch the repository to a different worktree path.
+   *
+   * If the target path is already registered as a separate repository, that
+   * repository is selected instead.
+   */
+  public async switchWorktree(
+    repository: Repository,
+    worktree: WorktreeEntry
+  ): Promise<void> {
+    await this.appStore
+      ._switchWorktree(repository, worktree)
+      .catch(e => this.postError(e))
+  }
+
+  /**
+   * Delete a worktree. If the worktree being deleted is the currently selected
+   * one, the repository is switched to the main worktree first.
+   */
+  public async deleteWorktree(
+    repository: Repository,
+    worktreePath: string,
+    force?: boolean
+  ): Promise<void> {
+    await this.appStore
+      ._deleteWorktree(repository, worktreePath, force)
+      .catch(e => this.postError(e))
   }
 
   /**

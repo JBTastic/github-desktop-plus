@@ -5,8 +5,6 @@ import { IFilterListGroup, IFilterListItem } from '../lib/filter-list'
 import { SectionFilterList } from '../lib/section-filter-list'
 import { WorktreeListItem } from './worktree-list-item'
 import { Button } from '../lib/button'
-import { Octicon } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
 import { IMatches } from '../../lib/fuzzy-find'
 import { ClickSource } from '../lib/list'
 import memoizeOne from 'memoize-one'
@@ -22,8 +20,7 @@ interface IWorktreeListItem extends IFilterListItem {
 interface IWorktreeListProps {
   readonly worktrees: ReadonlyArray<WorktreeEntry>
   readonly currentWorktree: WorktreeEntry | null
-  readonly selectedWorktree: WorktreeEntry | null
-  readonly onWorktreeSelected: (worktree: WorktreeEntry) => void
+
   readonly onWorktreeClick?: (
     worktree: WorktreeEntry,
     source: ClickSource
@@ -31,7 +28,7 @@ interface IWorktreeListProps {
   readonly onFilterTextChanged: (text: string) => void
   readonly filterText: string
   readonly canCreateNewWorktree: boolean
-  readonly onAddNewWorktree: () => void
+  readonly onCreateNewWorktree?: () => void
   readonly onWorktreeContextMenu?: (
     worktree: WorktreeEntry,
     event: React.MouseEvent<HTMLDivElement>
@@ -90,20 +87,21 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   }
 
   private renderGroupHeader = (identifier: WorktreeGroupIdentifier) => {
-    const label = identifier === 'main' ? 'Main Worktree' : 'Linked Worktrees'
+    const worktree = __DARWIN__ ? 'Worktree' : 'worktree'
+    const label =
+      identifier === 'main' ? `Main ${worktree}` : `Linked ${worktree}s`
     return <div className="filter-list-group-header">{label}</div>
   }
 
   private onRenderNewButton = () => {
-    if (!this.props.canCreateNewWorktree || !this.props.onAddNewWorktree) {
+    if (!this.props.canCreateNewWorktree || !this.props.onCreateNewWorktree) {
       return null
     }
     return (
       <Button
-        className="new-worktree-button button-with-icon"
-        onClick={this.props.onAddNewWorktree}
+        className="new-worktree-button"
+        onClick={this.props.onCreateNewWorktree}
       >
-        <Octicon symbol={octicons.plus} className="mr" />
         {__DARWIN__ ? 'New Worktree' : 'New worktree'}
       </Button>
     )
@@ -119,12 +117,6 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
     }
   }
 
-  private onSelectionChanged = (item: IWorktreeListItem | null) => {
-    if (item) {
-      this.props.onWorktreeSelected(item.worktree)
-    }
-  }
-
   private onItemContextMenu = (
     item: IWorktreeListItem,
     event: React.MouseEvent<HTMLDivElement>
@@ -136,11 +128,6 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
 
   public render() {
     const groups = this.getGroups(this.props.worktrees)
-    const selectedItem =
-      groups
-        .flatMap(g => g.items)
-        .find(i => i.worktree.path === this.props.selectedWorktree?.path) ||
-      null
 
     return (
       <SectionFilterList<IWorktreeListItem, WorktreeGroupIdentifier>
@@ -148,11 +135,10 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         rowHeight={RowHeight}
         filterText={this.props.filterText}
         onFilterTextChanged={this.props.onFilterTextChanged}
-        selectedItem={selectedItem}
+        selectedItem={null}
         renderItem={this.renderItem}
         renderGroupHeader={this.renderGroupHeader}
         onItemClick={this.onItemClick}
-        onSelectionChanged={this.onSelectionChanged}
         groups={groups}
         invalidationProps={this.props.worktrees}
         renderPostFilter={this.onRenderNewButton}

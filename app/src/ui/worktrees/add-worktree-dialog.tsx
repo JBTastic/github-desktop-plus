@@ -1,25 +1,31 @@
 import * as React from 'react'
-import * as Path from 'path'
 
+import { Branch, BranchType } from '../../models/branch'
 import { Repository } from '../../models/repository'
 import { Dispatcher } from '../dispatcher'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
-import { TextBox } from '../lib/text-box'
 import { RefNameTextBox } from '../lib/ref-name-text-box'
-import { Button } from '../lib/button'
 import { Row } from '../lib/row'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { showOpenDialog } from '../main-process-proxy'
-import { addWorktreeWithIncludes } from '../../lib/git/worktree-include'
+import { addWorktree, listWorktrees } from '../../lib/git/worktree'
+import { BranchAutocompletionProvider } from '../autocompletion/branch-autocompletion-provider'
+import memoizeOne from 'memoize-one'
+import { RepositoryPath } from '../lib/repository-path'
+import { Ref } from '../lib/ref'
+import { sanitizedRefName } from '../../lib/sanitize-ref-name'
 
 interface IAddWorktreeDialogProps {
   readonly repository: Repository
   readonly dispatcher: Dispatcher
   readonly onDismissed: () => void
+  readonly initialBranchName?: string
+  readonly initialWorktreeName?: string
+  readonly allBranches: ReadonlyArray<Branch>
 }
 
 interface IAddWorktreeDialogState {
-  readonly parentDirPath: string
+  readonly fullPath: string | null
+  readonly worktreeName: string
   readonly branchName: string
   readonly creating: boolean
 }
@@ -28,78 +34,154 @@ export class AddWorktreeDialog extends React.Component<
   IAddWorktreeDialogProps,
   IAddWorktreeDialogState
 > {
-  private branchNameTextBoxRef = React.createRef<RefNameTextBox>()
+  private getAutocompletionProvider = memoizeOne(
+    (branches: ReadonlyArray<Branch>) =>
+      new BranchAutocompletionProvider(branches)
+  )
 
   public constructor(props: IAddWorktreeDialogProps) {
     super(props)
 
     this.state = {
-      parentDirPath: Path.dirname(props.repository.path),
-      branchName: '',
+      fullPath: null,
+      worktreeName: '',
+      branchName: props.initialBranchName ?? '',
       creating: false,
     }
   }
 
-  public componentDidMount() {
-    this.branchNameTextBoxRef.current?.focus()
+  private onFullPathChanged = (fullPath: string | null) => {
+    this.setState({ fullPath })
   }
 
-  private onParentDirPathChanged = (parentDirPath: string) => {
-    this.setState({ parentDirPath })
+  private onWorktreeNameChanged = (worktreeName: string) => {
+    this.setState({ worktreeName })
   }
 
   private onBranchNameChanged = (branchName: string) => {
     this.setState({ branchName })
   }
 
-  private showFilePicker = async () => {
-    const path = await showOpenDialog({
-      properties: ['createDirectory', 'openDirectory'],
-    })
-
-    if (path === null) {
-      return
+  /**
+   * Returns the effective branch name to use. If the user has explicitly
+   * entered a branch name, that is used. Otherwise, fall back to the
+   * sanitized worktree name.
+   */
+  private getEffectiveBranchName(): string {
+    const { branchName, worktreeName } = this.state
+    if (branchName.length > 0) {
+      return branchName
     }
-
-    this.setState({ parentDirPath: path })
+    return sanitizedRefName(worktreeName)
   }
 
   private onSubmit = async () => {
-    const { parentDirPath: path, branchName } = this.state
-    const { dispatcher } = this.props
+    const { fullPath } = this.state
+
+    if (fullPath === null) {
+      return
+    }
+
+    const effectiveBranchName = this.getEffectiveBranchName()
 
     this.setState({ creating: true })
-    const worktreePath = Path.join(path, branchName)
+
+    const branch = this.props.allBranches.find(
+      b => b.name === effectiveBranchName
+    )
 
     try {
-      await addWorktreeWithIncludes(this.props.repository, worktreePath, {
-        createBranch: branchName.length > 0 ? branchName : undefined,
-      })
+      if (branch?.type === BranchType.Remote) {
+        // Remote branch: create a new local branch from the remote ref
+        await addWorktree(this.props.repository, fullPath, {
+          createBranch: branch.nameWithoutRemote,
+          commitish: branch.ref,
+        })
+      } else if (branch) {
+        // Existing local branch: check it out in the new worktree
+        await addWorktree(this.props.repository, fullPath, {
+          commitish: branch.name,
+        })
+      } else {
+        // New branch: create it in the new worktree
+        await addWorktree(this.props.repository, fullPath, {
+          createBranch: effectiveBranchName,
+        })
+      }
     } catch (e) {
-      dispatcher.postError(e)
+      this.props.dispatcher.postError(e)
       this.setState({ creating: false })
       return
     }
 
-    const addedRepos = await dispatcher.addRepositories(
-      [worktreePath],
-      this.props.repository.login
-    )
+    const { dispatcher, repository } = this.props
+    const worktrees = await listWorktrees(repository)
+    const worktree = worktrees.find(wt => wt.path === fullPath)
 
-    if (addedRepos.length > 0) {
-      await dispatcher.selectRepository(addedRepos[0])
+    if (!worktree) {
+      this.props.dispatcher.postError(
+        new Error('Failed to find the newly created worktree')
+      )
+      this.setState({ creating: false })
+      return
     }
+
+    dispatcher.incrementMetric('worktreeCreatedCount')
+    await dispatcher.switchWorktree(repository, worktree)
 
     this.setState({ creating: false })
     this.props.onDismissed()
   }
 
+  private renderBranchStatus() {
+    const effectiveName = this.getEffectiveBranchName()
+
+    if (effectiveName.length === 0) {
+      return null
+    }
+
+    const branch = this.props.allBranches.find(b => b.name === effectiveName)
+
+    if (!branch) {
+      return null
+    }
+
+    return (
+      <Row>
+        <p className="branch-status-hint">
+          {branch.type === BranchType.Remote ? (
+            <>
+              Will check out remote branch <Ref>{effectiveName}</Ref>.
+            </>
+          ) : (
+            <>
+              Will check out existing branch <Ref>{effectiveName}</Ref>.
+            </>
+          )}
+        </p>
+      </Row>
+    )
+  }
+
+  private renderPathMessage() {
+    const { fullPath } = this.state
+    if (fullPath === null) {
+      return null
+    }
+
+    return (
+      <div id="add-worktree-path-msg">
+        Worktree will be created at <Ref>{fullPath}</Ref>.
+      </div>
+    )
+  }
+
   public render() {
     const disabled =
-      !this.state.parentDirPath ||
-      !this.state.branchName ||
+      this.state.fullPath === null ||
       this.state.creating ||
-      !Path.isAbsolute(this.state.parentDirPath)
+      this.getEffectiveBranchName().length === 0
+    const branchPlaceholder = sanitizedRefName(this.state.worktreeName)
 
     return (
       <Dialog
@@ -110,27 +192,33 @@ export class AddWorktreeDialog extends React.Component<
         onDismissed={this.props.onDismissed}
       >
         <DialogContent>
-          <Row>
-            <TextBox
-              value={this.state.parentDirPath}
-              label={__DARWIN__ ? 'Parent Folder' : 'Parent folder'}
-              placeholder="Parent folder path"
-              onValueChanged={this.onParentDirPathChanged}
-            />
-            <Button onClick={this.showFilePicker}>Choose…</Button>
-          </Row>
+          <RepositoryPath
+            initialName={
+              this.props.initialWorktreeName ?? this.props.initialBranchName
+            }
+            onFullPathChanged={this.onFullPathChanged}
+            onNameChanged={this.onWorktreeNameChanged}
+            nameLabel={__DARWIN__ ? 'Worktree Name' : 'Worktree name'}
+            namePlaceholder="worktree name"
+            pathPlaceholder="worktree path"
+          />
 
           <Row>
             <RefNameTextBox
-              label={__DARWIN__ ? 'New Worktree Name' : 'New worktree name'}
-              initialValue=""
+              label={__DARWIN__ ? 'Branch Name' : 'Branch name'}
+              placeholder={branchPlaceholder}
+              initialValue={this.state.branchName}
               onValueChange={this.onBranchNameChanged}
-              ref={this.branchNameTextBoxRef}
+              autocompletionProvider={this.getAutocompletionProvider(
+                this.props.allBranches
+              )}
             />
           </Row>
+          {this.renderBranchStatus()}
         </DialogContent>
 
         <DialogFooter>
+          {this.renderPathMessage()}
           <OkCancelButtonGroup
             okButtonText={__DARWIN__ ? 'Create Worktree' : 'Create worktree'}
             okButtonDisabled={disabled}

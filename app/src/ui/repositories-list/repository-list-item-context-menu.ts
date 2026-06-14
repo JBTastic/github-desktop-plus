@@ -32,6 +32,8 @@ interface IRepositoryListItemContextMenuConfig {
   isPinned?: boolean
   onPinRepository?: (repository: Repository) => void
   onUnpinRepository?: (repository: Repository) => void
+  onCreateWorktree?: (repository: Repository) => void
+  onShowWorktrees?: (repository: Repository) => void
 }
 
 export const generateRepositoryListContextMenu = (
@@ -57,6 +59,7 @@ export const generateRepositoryListContextMenu = (
     ...buildAliasMenuItems(config),
     ...buildGroupNameMenuItems(config),
     ...buildPinMenuItems(config),
+    ...buildWorktreeMenuItems(config),
     { type: 'separator' },
     {
       label: __DARWIN__ ? 'Copy Repo Name' : 'Copy repo name',
@@ -203,4 +206,36 @@ const buildPinMenuItems = (
   }
 
   return []
+}
+
+const buildWorktreeMenuItems = (
+  config: IRepositoryListItemContextMenuConfig
+): ReadonlyArray<IMenuItem> => {
+  const { repository, onCreateWorktree, onShowWorktrees } = config
+
+  if (!(repository instanceof Repository)) {
+    return []
+  }
+
+  if (onCreateWorktree === undefined && onShowWorktrees === undefined) {
+    return []
+  }
+
+  const items: Array<IMenuItem> = []
+
+  if (onShowWorktrees !== undefined) {
+    items.push({
+      label: __DARWIN__ ? 'Show Worktrees' : 'Show worktrees',
+      action: () => onShowWorktrees(repository),
+    })
+  }
+
+  if (onCreateWorktree !== undefined) {
+    items.push({
+      label: __DARWIN__ ? 'New Worktree…' : 'New worktree…',
+      action: () => onCreateWorktree(repository),
+    })
+  }
+
+  return items
 }

@@ -1,51 +1,48 @@
 import { IMenuItem } from '../../lib/menu-item'
 import { clipboard } from 'electron'
+import { Branch, BranchType } from '../../models/branch'
 import { RepoType } from '../../models/github-repository'
 import { assertNever } from '../../lib/fatal-error'
 
 interface IBranchContextMenuConfig {
-  name: string
-  nameWithoutRemote: string
-  isLocal: boolean
+  branch: Branch
   repoType: RepoType | undefined
-  isInUseByOtherWorktree: boolean
   onRenameBranch?: (branchName: string) => void
   onViewBranchOnGitHub?: () => void
   onViewPullRequestOnGitHub?: () => void
   onSetAsDefaultBranch?: (branchName: string) => void
   onDeleteBranch?: (branchName: string) => void
   onPullSingleBranch?: (branchName: string) => void
+  onCheckoutInNewWorktree?: (branch: Branch) => void
 }
 
 export function generateBranchContextMenuItems(
   config: IBranchContextMenuConfig
 ): IMenuItem[] {
   const {
-    name,
-    nameWithoutRemote,
-    isLocal,
+    branch,
     repoType,
-    isInUseByOtherWorktree,
     onRenameBranch,
     onViewBranchOnGitHub,
     onViewPullRequestOnGitHub,
     onSetAsDefaultBranch,
     onDeleteBranch,
     onPullSingleBranch,
+    onCheckoutInNewWorktree,
   } = config
   const items = new Array<IMenuItem>()
 
   if (onRenameBranch !== undefined) {
     items.push({
       label: 'Rename…',
-      action: () => onRenameBranch(name),
-      enabled: isLocal,
+      action: () => onRenameBranch(branch.name),
+      enabled: branch.type === BranchType.Local,
     })
   }
 
   items.push({
     label: __DARWIN__ ? 'Copy Branch Name' : 'Copy branch name',
-    action: () => clipboard.writeText(name),
+    action: () => clipboard.writeText(branch.name),
   })
 
   if (onViewBranchOnGitHub !== undefined && repoType !== undefined) {
@@ -62,10 +59,19 @@ export function generateBranchContextMenuItems(
     })
   }
 
+  if (onCheckoutInNewWorktree !== undefined) {
+    items.push({
+      label: __DARWIN__
+        ? 'Checkout in New Worktree…'
+        : 'Checkout in new worktree…',
+      action: () => onCheckoutInNewWorktree(branch),
+    })
+  }
+
   if (onSetAsDefaultBranch !== undefined) {
     items.push({
       label: __DARWIN__ ? 'Set as Default Branch' : 'Set as default branch',
-      action: () => onSetAsDefaultBranch(nameWithoutRemote),
+      action: () => onSetAsDefaultBranch(branch.nameWithoutRemote),
     })
   }
 
@@ -73,16 +79,16 @@ export function generateBranchContextMenuItems(
     items.push({ type: 'separator' })
     items.push({
       label: __DARWIN__ ? 'Pull Branch' : 'Pull branch',
-      action: () => onPullSingleBranch(name),
+      action: () => onPullSingleBranch(branch.name),
       enabled: true,
     })
   }
 
-  if (onDeleteBranch !== undefined && !isInUseByOtherWorktree) {
+  if (onDeleteBranch !== undefined) {
     items.push({ type: 'separator' })
     items.push({
       label: 'Delete…',
-      action: () => onDeleteBranch(name),
+      action: () => onDeleteBranch(branch.name),
     })
   }
 

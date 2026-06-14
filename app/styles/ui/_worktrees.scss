@@ -69,3 +69,25 @@
     font-weight: var(--font-weight-semibold);
   }
 }
+
+#add-worktree {
+  width: 450px;
+
+  .autocompletion-popup {
+    width: 350px;
+  }
+
+  .branch-status-hint {
+    margin: var(--spacing-third) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary-color);
+  }
+  .ref-name-text-box {
+    margin-bottom: 0;
+  }
+
+  #add-worktree-path-msg {
+    margin-bottom: var(--spacing);
+    margin-top: calc(-1 * var(--spacing));
+  }
+}

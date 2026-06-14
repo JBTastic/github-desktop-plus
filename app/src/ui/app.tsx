@@ -47,12 +47,7 @@ import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 import { RepositoriesList } from './repositories-list'
 import { RepositoryView } from './repository'
 import { RenameBranch } from './rename-branch'
-import {
-  CantDeleteCurrentBranch,
-  CantDeleteCurrentBranchUncommittedChanges,
-  DeleteBranch,
-  DeleteRemoteBranch,
-} from './delete-branch'
+import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
 import { CloningRepositoryView } from './cloning-repository'
 import {
   Toolbar,
@@ -223,11 +218,10 @@ import { CommitProgress } from './commit-progress/commit-progress'
 import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
-import { CantDeleteWorktreeUncommittedChanges } from './worktrees/cant-delete-worktree-uncommitted-changes-dialog'
+import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
 import { ManageRemotesDialog } from './manage-remotes/manage-remotes-dialog'
 import { AddRemoteDialog } from './manage-remotes/add-remote-dialog'
 import { getEditorOverrideLabel } from '../models/editor-override'
-import { CantDeleteMainBranch } from './delete-branch/cant-delete-main-branch'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -498,6 +492,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showBranches()
       case 'show-worktrees':
         return this.showWorktrees()
+      case 'create-worktree':
+        return this.showCreateWorktree()
       case 'remove-repository':
         return this.removeRepository(this.getRepository())
       case 'create-repository':
@@ -1015,20 +1011,30 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private showWorktrees() {
     const state = this.state.selectedState
-    if (state?.type !== SelectionType.Repository) {
+    if (state == null || state.type !== SelectionType.Repository) {
       return
     }
 
-    if (!this.state.showWorktrees) {
-      this.props.dispatcher.setShowWorktrees(true)
-      this.setBanner({ type: BannerType.WorktreesEnabled })
-    }
-
-    if (this.state.currentFoldout?.type === FoldoutType.Worktree) {
+    if (
+      this.state.currentFoldout &&
+      this.state.currentFoldout.type === FoldoutType.Worktree
+    ) {
       return this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
     }
 
     return this.props.dispatcher.showFoldout({ type: FoldoutType.Worktree })
+  }
+
+  private showCreateWorktree() {
+    const state = this.state.selectedState
+    if (state == null || state.type !== SelectionType.Repository) {
+      return
+    }
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.AddWorktree,
+      repository: state.repository,
+    })
   }
 
   private push(options?: { forceWithLease: boolean }) {
@@ -1676,31 +1682,6 @@ export class App extends React.Component<IAppProps, IAppState> {
             branch={popup.branch}
             accounts={this.state.accounts}
             cachedRepoRulesets={this.state.cachedRepoRulesets}
-            onDismissed={onPopupDismissedFn}
-          />
-        )
-      case PopupType.CantDeleteCurrentBranch:
-        return (
-          <CantDeleteCurrentBranch
-            key="cant-delete-current-branch"
-            branchToDelete={popup.branchToDelete}
-            blockedByBranch={popup.blockedByBranch}
-            onDismissed={onPopupDismissedFn}
-          />
-        )
-      case PopupType.CantDeleteMainBranch:
-        return (
-          <CantDeleteMainBranch
-            key="cant-delete-main-branch"
-            branchToDelete={popup.branchToDelete}
-            onDismissed={onPopupDismissedFn}
-          />
-        )
-      case PopupType.CantDeleteCurrentBranchUncommittedChanges:
-        return (
-          <CantDeleteCurrentBranchUncommittedChanges
-            key="cant-delete-current-branch-uncommitted-changes"
-            branchToDelete={popup.branchToDelete}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -2903,12 +2884,19 @@ export class App extends React.Component<IAppProps, IAppState> {
         )
       }
       case PopupType.AddWorktree: {
+        const allBranches =
+          this.state.selectedState?.type === SelectionType.Repository
+            ? this.state.selectedState.state.branchesState.allBranches
+            : []
         return (
           <AddWorktreeDialog
             key="add-worktree"
             repository={popup.repository}
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
+            initialBranchName={popup.initialBranchName}
+            initialWorktreeName={popup.initialWorktreeName}
+            allBranches={allBranches}
           />
         )
       }
@@ -2929,19 +2917,23 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="delete-worktree"
             repository={popup.repository}
             worktreePath={popup.worktreePath}
-            dispatcher={this.props.dispatcher}
+            onDeleteWorktree={this.onDeleteWorkTree}
             onDismissed={onPopupDismissedFn}
           />
         )
       }
-      case PopupType.CantDeleteWorktreeUncommittedChanges:
+      case PopupType.DeleteWorktreeFailed: {
         return (
-          <CantDeleteWorktreeUncommittedChanges
-            key="cant-delete-worktree-uncommitted-changes"
+          <DeleteWorktreeFailedDialog
+            key="delete-worktree-failed"
+            repository={popup.repository}
             worktreePath={popup.worktreePath}
+            error={popup.error}
+            onDeleteWorktree={this.onDeleteWorkTree}
             onDismissed={onPopupDismissedFn}
           />
         )
+      }
       case PopupType.ManageRemotes:
         return (
           <ManageRemotesDialog
@@ -2965,6 +2957,14 @@ export class App extends React.Component<IAppProps, IAppState> {
       default:
         return assertNever(popup, `Unknown popup type: ${popup}`)
     }
+  }
+
+  private onDeleteWorkTree = (
+    repository: Repository,
+    worktreePath: string,
+    force?: boolean
+  ) => {
+    return this.props.dispatcher.deleteWorktree(repository, worktreePath, force)
   }
 
   private onUpdateCommitOptions = (
@@ -3281,9 +3281,7 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     const { useCustomShell, selectedShell } = this.state
     const filterText = this.state.repositoryFilterText
-    const repositories = this.state.repositories.filter(
-      r => !(r instanceof Repository && r.isLinkedWorktree)
-    )
+    const repositories = this.state.repositories
     return (
       <RepositoriesList
         filterText={filterText}
@@ -3498,11 +3496,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     repository: Repository | CloningRepository
   ): string {
     // If the worktrees dropdown is enabled, there is no need to add a suffix to the repository name
-    if (
-      this.state.showWorktrees ||
-      !(repository instanceof Repository) ||
-      !repository.isLinkedWorktree
-    ) {
+    if (this.state.showWorktrees || !(repository instanceof Repository)) {
       return ''
     }
     const worktreeName = Path.basename(repository.path)
@@ -3537,6 +3531,17 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.props.dispatcher.changeRepositoryGroupName(repository, null)
     }
 
+    const onCreateWorktree = (repository: Repository) => {
+      this.props.dispatcher.showPopup({
+        type: PopupType.AddWorktree,
+        repository,
+      })
+    }
+
+    const onShowWorktrees = () => {
+      this.showWorktrees()
+    }
+
     const items = generateRepositoryListContextMenu({
       onRemoveRepository: this.removeRepository,
       onShowRepository: this.showRepository,
@@ -3550,6 +3555,8 @@ export class App extends React.Component<IAppProps, IAppState> {
       onChangeRepositoryGroupName: onChangeRepositoryGroupName,
       onRemoveRepositoryGroupName: onRemoveRepositoryGroupName,
       onViewOnGitHub: this.viewOnGitHub,
+      onCreateWorktree: onCreateWorktree,
+      onShowWorktrees: onShowWorktrees,
       repository: repository,
       shellLabel: this.state.useCustomShell
         ? undefined
@@ -3768,21 +3775,25 @@ export class App extends React.Component<IAppProps, IAppState> {
   private renderWorktreeToolbarButton(): JSX.Element | null {
     const selection = this.state.selectedState
 
-    if (selection?.type !== SelectionType.Repository) {
+    if (selection == null || selection.type !== SelectionType.Repository) {
       return null
     }
 
-    if (!this.state.showWorktrees) {
-      return null
-    }
+    const { worktrees } = selection.state
 
     const currentFoldout = this.state.currentFoldout
 
     const isOpen =
       currentFoldout !== null && currentFoldout.type === FoldoutType.Worktree
 
+    // Only show the worktree dropdown when there are linked worktrees or if the
+    // foldout is open. This allows the user to create a worktree from the app
+    // menu even when there are no worktrees.
+    if (worktrees.length <= 1 && !isOpen) {
+      return null
+    }
+
     const repository = selection.repository
-    const repositoryState = selection.state
 
     const enableFocusTrap = this.state.currentPopup === null
 
@@ -3790,13 +3801,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       <WorktreeDropdown
         dispatcher={this.props.dispatcher}
         repository={repository}
-        repositoryState={repositoryState}
+        worktrees={worktrees}
         isOpen={isOpen}
         onDropDownStateChanged={this.onWorktreeDropdownStateChanged}
         enableFocusTrap={enableFocusTrap}
-        repositories={this.state.repositories}
         worktreeDropdownWidth={this.state.worktreeDropdownWidth}
-        localRepositoryStateLookup={this.state.localRepositoryStateLookup}
       />
     )
   }

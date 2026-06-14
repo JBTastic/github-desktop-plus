@@ -229,7 +229,7 @@ export function buildDefaultMenu({
       {
         label: __DARWIN__ ? 'Show Worktrees List' : '&Worktrees list',
         id: 'show-worktrees-list',
-        accelerator: 'CmdOrCtrl+E',
+        accelerator: 'CmdOrCtrl+Alt+W',
         click: emit('show-worktrees'),
       },
       separator,
@@ -410,6 +410,13 @@ export function buildDefaultMenu({
           onGithubLabel(gitHubRepositoryType),
         accelerator: 'CmdOrCtrl+I',
         click: emit('create-issue-in-repository-on-github'),
+      },
+      separator,
+      {
+        id: 'create-worktree',
+        label: __DARWIN__ ? 'New Worktree…' : 'New work&tree…',
+        click: emit('create-worktree'),
+        accelerator: 'CmdOrCtrl+Shift+W',
       },
       separator,
       {

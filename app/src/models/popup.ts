@@ -114,15 +114,12 @@ export enum PopupType {
   AddWorktree = 'AddWorktree',
   RenameWorktree = 'RenameWorktree',
   DeleteWorktree = 'DeleteWorktree',
-  CantDeleteCurrentBranch = 'CantDeleteCurrentBranch',
-  CantDeleteMainBranch = 'CantDeleteMainBranch',
-  CantDeleteCurrentBranchUncommittedChanges = 'CantDeleteCurrentBranchUncommittedChanges',
-  CantDeleteWorktreeUncommittedChanges = 'CantDeleteWorktreeUncommittedChanges',
   EditCopilotBYOKProvider = 'EditCopilotBYOKProvider',
   EditCopilotBYOKModel = 'EditCopilotBYOKModel',
   ConfirmDeleteCopilotBYOKProvider = 'ConfirmDeleteCopilotBYOKProvider',
   ManageRemotes = 'ManageRemotes',
   AddRemote = 'AddRemote',
+  DeleteWorktreeFailed = 'DeleteWorktreeFailed',
 }
 
 interface IBasePopup {
@@ -134,22 +131,6 @@ interface IBasePopup {
 
 export type PopupDetail =
   | { type: PopupType.RenameBranch; repository: Repository; branch: Branch }
-  | {
-      type: PopupType.CantDeleteCurrentBranch
-      repository: Repository
-      branchToDelete: Branch
-      blockedByBranch: Branch
-    }
-  | {
-      type: PopupType.CantDeleteMainBranch
-      repository: Repository
-      branchToDelete: Branch
-    }
-  | {
-      type: PopupType.CantDeleteCurrentBranchUncommittedChanges
-      repository: Repository
-      branchToDelete: Branch
-    }
   | {
       type: PopupType.DeleteBranch
       repository: Repository
@@ -536,6 +517,8 @@ export type PopupDetail =
   | {
       type: PopupType.AddWorktree
       repository: Repository
+      initialBranchName?: string
+      initialWorktreeName?: string
     }
   | {
       type: PopupType.RenameWorktree
@@ -548,10 +531,6 @@ export type PopupDetail =
       worktreePath: string
     }
   | {
-      type: PopupType.CantDeleteWorktreeUncommittedChanges
-      worktreePath: string
-    }
-  | {
       type: PopupType.ManageRemotes
       repository: Repository
     }
@@ -559,5 +538,11 @@ export type PopupDetail =
       type: PopupType.AddRemote
       repository: Repository
       existingRemoteNames: ReadonlyArray<string>
+    }
+  | {
+      type: PopupType.DeleteWorktreeFailed
+      repository: Repository
+      worktreePath: string
+      error: Error
     }
 export type Popup = IBasePopup & PopupDetail

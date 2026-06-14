@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as Path from 'path'
 import { WorktreeEntry } from '../../models/worktree'
+import { shortenSHA } from '../../models/commit'
 import { IMatches } from '../../lib/fuzzy-find'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
@@ -36,17 +37,17 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
         >
           <HighlightText text={name} highlight={matches.title} />
         </TooltippedContent>
-        {worktree.branch && (
-          <TooltippedContent
-            className="description"
-            tooltip={worktree.branch}
-            onlyWhenOverflowed={true}
-            tagName="div"
-            disabled={enableAccessibleListToolTips()}
-          >
-            {worktree.branch}
-          </TooltippedContent>
-        )}
+        <TooltippedContent
+          className="description"
+          tooltip={worktree.branch ?? worktree.head}
+          onlyWhenOverflowed={true}
+          tagName="div"
+          disabled={enableAccessibleListToolTips()}
+        >
+          {worktree.branch
+            ? worktree.branch.replace(/^refs\/heads\//, '')
+            : shortenSHA(worktree.head)}
+        </TooltippedContent>
       </div>
     )
   }

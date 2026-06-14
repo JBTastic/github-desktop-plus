@@ -4,7 +4,7 @@ import { readFile, copyFile, mkdir } from 'fs/promises'
 import ignore from 'ignore'
 import type { Repository } from '../../models/repository'
 import { git } from './core'
-import { addWorktree, getMainWorktreePath } from './worktree'
+import { addWorktree } from './worktree'
 
 const WorktreeIncludeFile = '.worktreeinclude'
 
@@ -125,8 +125,7 @@ export async function addWorktreeWithIncludes(
   await addWorktree(repository, path, options)
 
   try {
-    const mainPath = (await getMainWorktreePath(repository)) ?? repository.path
-    const patterns = await readWorktreeIncludePatterns(mainPath)
+    const patterns = await readWorktreeIncludePatterns(repository.path)
 
     if (patterns.length === 0) {
       return
@@ -135,7 +134,7 @@ export async function addWorktreeWithIncludes(
     const files = await getIgnoredFilesMatchingPatterns(repository, patterns)
 
     if (files.length > 0) {
-      await copyWorktreeIncludeFiles(mainPath, path, files)
+      await copyWorktreeIncludeFiles(repository.path, path, files)
     }
   } catch (e) {
     log.warn(
