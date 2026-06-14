@@ -125,7 +125,6 @@ interface IPreferencesProps {
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
-  readonly showWorktreesInSidebar: boolean
   readonly showCompareTab: boolean
   readonly repositoryIndicatorsEnabled: boolean
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
@@ -179,7 +178,6 @@ interface IPreferencesState {
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
   readonly showWorktrees: boolean
-  readonly showWorktreesInSidebar: boolean
   readonly showCompareTab: boolean
   /**
    * If unable to save Git configuration values (name, email)
@@ -277,7 +275,6 @@ export class Preferences extends React.Component<
       titleBarStyle: this.props.titleBarStyle,
       showRecentRepositories: this.props.showRecentRepositories,
       showWorktrees: this.props.showWorktrees,
-      showWorktreesInSidebar: this.props.showWorktreesInSidebar,
       showCompareTab: this.props.showCompareTab,
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
       showBranchNameInRepoList: this.props.showBranchNameInRepoList,
@@ -687,10 +684,6 @@ export class Preferences extends React.Component<
             }
             showWorktrees={this.state.showWorktrees}
             onShowWorktreesChanged={this.onShowWorktreesChanged}
-            showWorktreesInSidebar={this.state.showWorktreesInSidebar}
-            onShowWorktreesInSidebarChanged={
-              this.onShowWorktreesInSidebarChanged
-            }
             showCompareTab={this.state.showCompareTab}
             onShowCompareTabChanged={this.onShowCompareTabChanged}
             showBranchNameInRepoList={this.state.showBranchNameInRepoList}
@@ -1071,12 +1064,6 @@ export class Preferences extends React.Component<
     this.setState({ showWorktrees })
   }
 
-  private onShowWorktreesInSidebarChanged = (
-    showWorktreesInSidebar: boolean
-  ) => {
-    this.setState({ showWorktreesInSidebar })
-  }
-
   private onShowCompareTabChanged = (showCompareTab: boolean) => {
     this.setState({ showCompareTab })
   }
@@ -1160,12 +1147,6 @@ export class Preferences extends React.Component<
 
       if (this.state.showWorktrees !== this.props.showWorktrees) {
         dispatcher.setShowWorktrees(this.state.showWorktrees)
-      }
-
-      if (
-        this.state.showWorktreesInSidebar !== this.props.showWorktreesInSidebar
-      ) {
-        dispatcher.setShowWorktreesInSidebar(this.state.showWorktreesInSidebar)
       }
 
       if (this.state.showCompareTab !== this.props.showCompareTab) {

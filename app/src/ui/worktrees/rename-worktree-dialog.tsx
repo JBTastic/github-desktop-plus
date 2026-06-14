@@ -46,7 +46,7 @@ export class RenameWorktreeDialog extends React.Component<
     this.setState({ renaming: true })
 
     const storedRepo = await dispatcher.getRepositoryForPath(worktreePath)
-    const mainRepoPath = storedRepo?.mainWorktreePath ?? repository.path
+    const mainRepoPath = repository.path
 
     try {
       await moveWorktree(repository, worktreePath, newPath)

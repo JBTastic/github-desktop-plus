@@ -14,7 +14,6 @@ import { enableAccessibleListToolTips } from '../../lib/feature-flag'
 import { TooltippedContent } from '../lib/tooltipped-content'
 
 interface IRepositoryListItemProps {
-  readonly title: string
   readonly repository: Repositoryish
 
   /** Does the repository need to be disambiguated in the list? */
@@ -31,9 +30,6 @@ interface IRepositoryListItemProps {
 
   /** The name of the current branch, if it should be displayed */
   readonly branchName: string | null
-  readonly isNestedWorktree: boolean
-  readonly mainWorktreeName: string | null
-  readonly isPrunableWorktree: boolean
 }
 
 /** A repository item. */
@@ -48,9 +44,6 @@ export class RepositoryListItem extends React.Component<
     const gitHubRepo =
       repository instanceof Repository ? repository.gitHubRepository : null
     const hasChanges = this.props.changedFilesCount > 0
-    const icon = this.props.isNestedWorktree
-      ? octicons.fileDirectory
-      : iconForRepository(repository)
 
     const alias: string | null =
       repository instanceof Repository ? repository.alias : null
@@ -61,19 +54,11 @@ export class RepositoryListItem extends React.Component<
     }
 
     const classNameList = classNames('name', {
-      alias:
-        alias !== null &&
-        !this.props.isNestedWorktree &&
-        this.props.title === alias,
+      alias: alias !== null,
     })
 
     return (
-      <div
-        className={classNames('repository-list-item', {
-          'nested-worktree': this.props.isNestedWorktree,
-        })}
-        ref={this.listItemRef}
-      >
+      <div className="repository-list-item" ref={this.listItemRef}>
         <Tooltip
           target={this.listItemRef}
           disabled={enableAccessibleListToolTips()}
@@ -81,12 +66,15 @@ export class RepositoryListItem extends React.Component<
           {this.renderTooltip()}
         </Tooltip>
 
-        <Octicon className="icon-for-repository" symbol={icon} />
+        <Octicon
+          className="icon-for-repository"
+          symbol={iconForRepository(repository)}
+        />
 
-        <div className={classNameList}>
+        <div className={classNames(classNameList)}>
           {prefix ? <span className="prefix">{prefix}</span> : null}
           <HighlightText
-            text={this.props.title}
+            text={alias ?? repository.name}
             highlight={this.props.matches.title}
           />
         </div>
@@ -97,7 +85,7 @@ export class RepositoryListItem extends React.Component<
             {this.props.branchName}
           </span>
         )}
-        {this.props.isPrunableWorktree && renderPrunableIndicator()}
+
         {repository instanceof Repository &&
           renderRepoIndicators({
             aheadBehind: this.props.aheadBehind,
@@ -121,12 +109,6 @@ export class RepositoryListItem extends React.Component<
         </div>
         <div>{repo.path}</div>
         {this.props.branchName && <div>Branch: {this.props.branchName}</div>}
-        {this.props.mainWorktreeName && (
-          <div>Repository: {this.props.mainWorktreeName}</div>
-        )}
-        {this.props.isPrunableWorktree && (
-          <div>This worktree entry is stale and should be pruned.</div>
-        )}
       </>
     )
   }
@@ -139,14 +121,7 @@ export class RepositoryListItem extends React.Component<
       return (
         nextProps.repository.id !== this.props.repository.id ||
         nextProps.matches !== this.props.matches ||
-        nextProps.title !== this.props.title ||
-        nextProps.needsDisambiguation !== this.props.needsDisambiguation ||
-        nextProps.branchName !== this.props.branchName ||
-        nextProps.aheadBehind !== this.props.aheadBehind ||
-        nextProps.changedFilesCount !== this.props.changedFilesCount ||
-        nextProps.isNestedWorktree !== this.props.isNestedWorktree ||
-        nextProps.mainWorktreeName !== this.props.mainWorktreeName ||
-        nextProps.isPrunableWorktree !== this.props.isPrunableWorktree
+        nextProps.branchName !== this.props.branchName
       )
     } else {
       return true
@@ -200,18 +175,6 @@ const renderChangesIndicator = () => {
       disabled={enableAccessibleListToolTips()}
     >
       <Octicon symbol={octicons.dotFill} />
-    </TooltippedContent>
-  )
-}
-
-const renderPrunableIndicator = () => {
-  return (
-    <TooltippedContent
-      className="prunable-indicator-wrapper"
-      tooltip="This worktree entry is stale and should be pruned"
-      disabled={enableAccessibleListToolTips()}
-    >
-      <Octicon symbol={octicons.alert} />
     </TooltippedContent>
   )
 }

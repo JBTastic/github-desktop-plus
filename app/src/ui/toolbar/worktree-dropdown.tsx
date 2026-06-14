@@ -148,10 +148,6 @@ export class WorktreeDropdown extends React.Component<
       type: PopupType.DeleteWorktree,
       repository: this.props.repository,
       worktreePath: path,
-      storedRepositoryToRemove:
-        matchingRepo instanceof Repository ? matchingRepo : null,
-      isDeletingCurrentWorktree:
-        normalizePath(this.props.repository.path) === normalizedPath,
     })
   }
 

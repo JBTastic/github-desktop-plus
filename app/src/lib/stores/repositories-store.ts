@@ -521,12 +521,6 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     date: number = Date.now()
   ): Promise<void> {
-    // Synthetic sidebar-only worktree rows are transient repositories that
-    // are not persisted in the repositories store.
-    if (repository.id < 0) {
-      return
-    }
-
     await this.db.repositories.update(repository.id, {
       lastStashCheckDate: date,
     })
@@ -544,12 +538,6 @@ export class RepositoriesStore extends TypedBaseStore<
   public async getLastStashCheckDate(
     repository: Repository
   ): Promise<number | null> {
-    // Synthetic sidebar-only worktree rows are transient repositories that
-    // are not persisted in the repositories store.
-    if (repository.id < 0) {
-      return null
-    }
-
     let lastCheckDate = this.lastStashCheckCache.get(repository.id) || null
     if (lastCheckDate !== null) {
       return lastCheckDate

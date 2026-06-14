@@ -77,9 +77,7 @@ export class AddExistingRepository extends React.Component<
   }
 
   private async updatePath(path: string) {
-    await new Promise<void>(resolve => {
-      this.setState({ path }, resolve)
-    })
+    this.setState({ path })
   }
 
   private async validatePath(path: string): Promise<boolean> {
@@ -91,8 +89,7 @@ export class AddExistingRepository extends React.Component<
       return false
     }
 
-    const resolvedPath = this.resolvedPath(path)
-    const type = await getRepositoryType(resolvedPath)
+    const type = await getRepositoryType(path)
 
     const isRepository = type.kind !== 'missing' && type.kind !== 'unsafe'
     const isRepositoryUnsafe = type.kind === 'unsafe'

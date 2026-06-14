@@ -341,9 +341,6 @@ export interface IAppState {
   /** Whether or not the worktrees dropdown should be shown in the toolbar */
   readonly showWorktrees: boolean
 
-  /** Whether linked worktrees should be shown under their repository in the sidebar */
-  readonly showWorktreesInSidebar: boolean
-
   /** Whether or not the Compare tab should be shown in the repository view */
   readonly showCompareTab: boolean
 

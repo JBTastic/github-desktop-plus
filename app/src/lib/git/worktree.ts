@@ -35,15 +35,6 @@ export async function getWorktreeCheckedOutBranches(
   return branches
 }
 
-function getDotGitPath(repositoryPath: string): string {
-  return Path.join(repositoryPath, '.git')
-}
-
-export interface IWorktreePathInfo {
-  readonly isLinkedWorktree: boolean
-  readonly mainWorktreePath: string | null
-}
-
 export function parseWorktreePorcelainOutput(
   stdout: string
 ): ReadonlyArray<WorktreeEntry> {
@@ -137,10 +128,6 @@ export async function removeWorktree(
   await git(args, repository.path, 'removeWorktree')
 }
 
-export async function pruneWorktrees(repository: Repository): Promise<void> {
-  await git(['worktree', 'prune'], repository.path, 'pruneWorktrees')
-}
-
 export async function moveWorktree(
   repository: Repository,
   oldPath: string,
@@ -172,48 +159,17 @@ export async function getMainWorktreePath(
   return main?.path ?? null
 }
 
-export function getWorktreePathInfoSync(
-  repositoryPath: string
-): IWorktreePathInfo | null {
+/**
+ * Synchronously checks if a repository path is a linked worktree by examining
+ * whether `.git` is a file (linked worktree) or directory (main worktree).
+ */
+export function isLinkedWorktreeSync(repositoryPath: string): boolean {
   try {
-    const dotGit = getDotGitPath(repositoryPath)
+    const dotGit = Path.join(repositoryPath, '.git')
     // eslint-disable-next-line no-sync
     const stats = Fs.statSync(dotGit)
-
-    if (stats.isDirectory()) {
-      return { isLinkedWorktree: false, mainWorktreePath: repositoryPath }
-    }
-
-    if (!stats.isFile()) {
-      return null
-    }
-
-    // eslint-disable-next-line no-sync
-    const contents = Fs.readFileSync(dotGit, 'utf8').trim()
-    if (!contents.startsWith('gitdir: ')) {
-      return null
-    }
-
-    const gitDirPath = Path.resolve(
-      repositoryPath,
-      contents.substring('gitdir: '.length)
-    )
-
-    // eslint-disable-next-line no-sync
-    const commondir = Fs.readFileSync(
-      Path.join(gitDirPath, 'commondir'),
-      'utf8'
-    ).trim()
-    if (commondir.length === 0) {
-      return null
-    }
-
-    const commonGitDir = Path.resolve(gitDirPath, commondir)
-    return {
-      isLinkedWorktree: true,
-      mainWorktreePath: Path.dirname(commonGitDir),
-    }
+    return stats.isFile()
   } catch {
-    return null
+    return false
   }
 }
