@@ -861,7 +861,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       getBoolean(repositoryIndicatorsEnabledKey) ?? true
 
     this.showRecentRepositories = getBoolean(showRecentRepositoriesKey) ?? true
-    this.showWorktrees = getBoolean(showWorktreesKey) ?? false
+    this.showWorktrees = getBoolean(showWorktreesKey) ?? true
     this.showCompareTab = getBoolean(showCompareTabKey, showCompareTabDefault)
 
     this.repositoryIndicatorUpdater = new RepositoryIndicatorUpdater(

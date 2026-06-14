@@ -3403,6 +3403,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         shellLabel={useCustomShell ? undefined : selectedShell}
         dispatcher={this.props.dispatcher}
         showBranchNameInRepoList={this.state.showBranchNameInRepoList}
+        showWorktrees={this.state.showWorktrees}
       />
     )
   }
@@ -3872,6 +3873,9 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private renderWorktreeToolbarButton(): JSX.Element | null {
     if (!enableWorktreeSupport()) {
+      return null
+    }
+    if (!this.state.showWorktrees) {
       return null
     }
 

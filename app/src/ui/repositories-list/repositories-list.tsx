@@ -91,6 +91,9 @@ interface IRepositoriesListProps {
 
   /** Controls when to show the branch name next to each repository */
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
+
+  /** Whether or not the worktrees dropdown should be shown in the toolbar */
+  readonly showWorktrees: boolean
 }
 
 interface IRepositoriesListState {
@@ -360,9 +363,10 @@ export class RepositoriesList extends React.Component<
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree
         : undefined,
-      onShowWorktrees: enableWorktreeSupport()
-        ? this.onShowWorktrees
-        : undefined,
+      onShowWorktrees:
+        enableWorktreeSupport() && this.props.showWorktrees
+          ? this.onShowWorktrees
+          : undefined,
       repository: item.repository,
       shellLabel: this.props.shellLabel,
       onCopyRepoPath: path => this.props.dispatcher.copyPathToClipboard(path),
