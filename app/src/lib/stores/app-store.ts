@@ -4814,6 +4814,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const worktrees = await listWorktrees(repository)
       this.repositoryStateCache.update(repository, () => ({ worktrees }))
       this.statsStore.recordWorktreeCount(worktrees.length)
+
+      // Keep the repository list's local state in sync as well
+      const existing = this.localRepositoryStateLookup.get(repository.id)
+      if (existing && this.showWorktreesInRepoList) {
+        this.localRepositoryStateLookup.set(repository.id, {
+          ...existing,
+          worktrees,
+        })
+      }
+
       this.emitUpdate()
     } catch (e) {
       log.error('Failed to refresh worktrees', e)
