@@ -1,6 +1,9 @@
 import * as React from 'react'
 import * as Path from 'path'
-import { CommittedFileChange } from '../../../models/status'
+import {
+  AppFileStatusKind,
+  CommittedFileChange,
+} from '../../../models/status'
 import {
   DiffType,
   IDiff,
@@ -95,7 +98,13 @@ export class CopilotConflictsChanges extends React.Component<
    */
   private getCommittedFiles(): ReadonlyArray<CommittedFileChange> {
     return this.props.conflictedFiles.map(
-      f => new CommittedFileChange(f.path, f.status, 'HEAD', 'HEAD^')
+      f =>
+        new CommittedFileChange(
+          f.path,
+          { kind: AppFileStatusKind.Modified },
+          'HEAD',
+          'HEAD^'
+        )
     )
   }
 
