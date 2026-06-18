@@ -501,9 +501,7 @@ function copyCopilotDependency() {
   )
 
   const copilotDestination = path.resolve(outRoot, 'copilot')
-  cpSync(copilotPkgDir, copilotDestination, {
-    recursive: true,
-  })
+  removeAndCopy(copilotPkgDir, copilotDestination)
 
   const currentPlatform = process.platform
   const currentArch = getDistArchitecture()
