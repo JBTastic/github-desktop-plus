@@ -66,6 +66,11 @@ export interface IMultiCommitOperationProps {
   readonly copilotConflictResolutionModel: IConflictResolutionModelDisplay
 
   /**
+   * Whether to hide the "Resolve with Copilot" button.
+   */
+  readonly conflictResolutionDisabled: boolean
+
+  /**
    * Callbacks for the conflict selection components to let the user jump out
    * to their preferred editor.
    */
@@ -292,7 +297,11 @@ export abstract class BaseMultiCommitOperation extends React.Component<IMultiCom
             openFileInExternalEditor={openFileInExternalEditor}
             openRepositoryInShell={openRepositoryInShell}
             someConflictsHaveBeenResolved={this.setConflictsHaveBeenResolved}
-            onResolveWithCopilot={this.onResolveWithCopilot}
+            onResolveWithCopilot={
+              this.props.conflictResolutionDisabled
+                ? undefined
+                : this.onResolveWithCopilot
+            }
           />
         )
       }

@@ -2540,6 +2540,10 @@ export class App extends React.Component<IAppProps, IAppState> {
               this.state.copilotModels,
               this.state.byokProviders
             )}
+            conflictResolutionDisabled={
+              this.state.selectedCopilotModels['conflict-resolution'] ===
+              DisabledCopilotModel
+            }
             openFileInExternalEditor={this.getOpenFileInExternalEditorHandler(
               popup.repository
             )}

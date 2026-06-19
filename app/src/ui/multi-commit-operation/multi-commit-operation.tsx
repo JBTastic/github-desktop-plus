@@ -38,6 +38,7 @@ export class MultiCommitOperation extends React.Component<IMultiCommitOperationP
             copilotConflictResolutionModel={
               this.props.copilotConflictResolutionModel
             }
+            conflictResolutionDisabled={this.props.conflictResolutionDisabled}
             openFileInExternalEditor={this.props.openFileInExternalEditor}
             resolvedExternalEditor={this.props.resolvedExternalEditor}
             openRepositoryInShell={this.props.openRepositoryInShell}
@@ -64,6 +65,7 @@ export class MultiCommitOperation extends React.Component<IMultiCommitOperationP
             copilotConflictResolutionModel={
               this.props.copilotConflictResolutionModel
             }
+            conflictResolutionDisabled={this.props.conflictResolutionDisabled}
             openFileInExternalEditor={this.props.openFileInExternalEditor}
             resolvedExternalEditor={this.props.resolvedExternalEditor}
             openRepositoryInShell={this.props.openRepositoryInShell}
@@ -90,6 +92,7 @@ export class MultiCommitOperation extends React.Component<IMultiCommitOperationP
             copilotConflictResolutionModel={
               this.props.copilotConflictResolutionModel
             }
+            conflictResolutionDisabled={this.props.conflictResolutionDisabled}
             openFileInExternalEditor={this.props.openFileInExternalEditor}
             resolvedExternalEditor={this.props.resolvedExternalEditor}
             openRepositoryInShell={this.props.openRepositoryInShell}
