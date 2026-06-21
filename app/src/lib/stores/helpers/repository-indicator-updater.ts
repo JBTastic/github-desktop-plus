@@ -23,11 +23,13 @@ export class RepositoryIndicatorUpdater {
   private pausePromise: Promise<void> = Promise.resolve()
   private resolvePausePromise: (() => void) | null = null
   private lastRefreshStartedAt: number | null = null
+  private fastRefreshDone = false
 
   public constructor(
     private readonly getRepositories: () => ReadonlyArray<Repository>,
     private readonly refreshRepositoryIndicators: (
-      repository: Repository
+      repository: Repository,
+      offline: boolean
     ) => Promise<void>
   ) {}
 
@@ -36,7 +38,25 @@ export class RepositoryIndicatorUpdater {
       log.debug('[RepositoryIndicatorUpdater] Starting')
 
       this.running = true
+      this.fastRefreshAllRepositories()
       this.scheduleRefresh()
+    }
+  }
+
+  /**
+   * Run the fast (no-network) refresh over all repositories exactly once for
+   * instantaneous feedback on some indicators.
+   */
+  private async fastRefreshAllRepositories() {
+    if (this.fastRefreshDone) {
+      return
+    }
+    this.fastRefreshDone = true
+
+    log.debug('[RepositoryIndicatorUpdater] Running fastRefreshAllRepositories')
+
+    for (const repository of this.getRepositories()) {
+      await this.refreshRepositoryIndicators(repository, true)
     }
   }
 
@@ -92,7 +112,7 @@ export class RepositoryIndicatorUpdater {
     let pausedTime = 0
 
     while (this.running && (repository = getNextRepository()) !== undefined) {
-      await this.refreshRepositoryIndicators(repository)
+      await this.refreshRepositoryIndicators(repository, false)
 
       if (this.paused) {
         log.debug(

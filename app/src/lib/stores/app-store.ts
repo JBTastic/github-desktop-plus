@@ -4619,7 +4619,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /**
    * Refresh indicator in repository list for a specific repository
    */
-  private refreshIndicatorForRepository = async (repository: Repository) => {
+  private refreshIndicatorForRepository = async (
+    repository: Repository,
+    offline: boolean
+  ) => {
     const lookup = this.localRepositoryStateLookup
 
     if (repository.missing) {
@@ -4642,6 +4645,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     await this.updateSidebarIndicator(repository, status)
     this.emitUpdate()
+
+    if (offline) {
+      return
+    }
 
     const lastPush = await inferLastPushForRepository(
       this.accounts,
