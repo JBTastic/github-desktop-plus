@@ -123,7 +123,6 @@ export class BranchSelect extends React.Component<
           defaultBranch={defaultBranch}
           branchSortOrder={this.props.branchSortOrder}
           recentBranches={recentBranches}
-          allWorktrees={[]}
           filterText={filterText}
           onFilterTextChanged={this.onFilterTextChanged}
           selectedBranch={selectedBranch}

@@ -53,9 +53,9 @@ describe('Branches grouping', () => {
   it('should group branches', () => {
     const groups = groupBranches(
       defaultBranch,
+      currentBranch,
       allBranches,
       recentBranches,
-      [],
       BranchSortOrder.Alphabetical
     )
     assert.equal(groups.length, 3)

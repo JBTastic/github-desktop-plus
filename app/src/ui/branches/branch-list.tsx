@@ -1,8 +1,6 @@
 import * as React from 'react'
-import * as Path from 'path'
 
 import { Branch } from '../../models/branch'
-import { WorktreeEntry } from '../../models/worktree'
 
 import { assertNever } from '../../lib/fatal-error'
 
@@ -53,11 +51,6 @@ interface IBranchListProps {
    * See IBranchesState.recentBranches
    */
   readonly recentBranches: ReadonlyArray<Branch>
-
-  /**
-   * All worktrees in the repository.
-   */
-  readonly allWorktrees: ReadonlyArray<WorktreeEntry>
 
   /**
    * The sort order for branch lists in the current user preferences.
@@ -195,9 +188,9 @@ export class BranchList extends React.Component<IBranchListProps> {
   private get groups() {
     return this.getGroups(
       this.props.defaultBranch,
+      this.props.currentBranch,
       this.props.allBranches,
       this.props.recentBranches,
-      this.props.allWorktrees,
       this.props.branchSortOrder
     )
   }
@@ -311,20 +304,17 @@ export class BranchList extends React.Component<IBranchListProps> {
   ): JSX.Element | string | null => {
     const { tip, name } = item.branch
 
-    const absoluteDate = formatDate(tip.author.date, {
-      dateStyle: 'full',
-      timeStyle: 'short',
-    })
+    const authorDate = tip.author.date
 
-    const otherWorktreeName = this.inUseByOtherWorktreeName(item)
+    const absoluteDate = authorDate
+      ? formatDate(authorDate, {
+          dateStyle: 'full',
+          timeStyle: 'short',
+        })
+      : null
+
     return (
       <div className="branches-list-item-tooltip list-item-tooltip">
-        {otherWorktreeName && (
-          <div className="label tooltip-warning">
-            This branch cannot be checked out because it is in use by worktree
-            &quot;{otherWorktreeName}&quot;
-          </div>
-        )}
         <div>
           <div className="label">Full Name: </div>
           {name}
@@ -337,17 +327,6 @@ export class BranchList extends React.Component<IBranchListProps> {
         )}
       </div>
     )
-  }
-
-  private inUseByOtherWorktreeName(item: IBranchListItem): string | null {
-    const worktreeName = item.worktreeInUse
-      ? Path.basename(item.worktreeInUse.path)
-      : null
-
-    return worktreeName !== null &&
-      this.props.currentBranch?.name !== item.branch.name
-      ? worktreeName
-      : null
   }
 
   private parseHeader(label: string): BranchGroupIdentifier | null {
@@ -415,16 +394,6 @@ export class BranchList extends React.Component<IBranchListProps> {
   }
 
   private onItemClick = (item: IBranchListItem, source: ClickSource) => {
-    // Don't allow clicking branches that are in use by other worktrees
-    if (item.worktreeInUse !== null) {
-      const currentBranch = this.props.currentBranch
-      const isCurrentBranch =
-        currentBranch !== null && currentBranch.name === item.branch.name
-      if (!isCurrentBranch) {
-        return
-      }
-    }
-
     if (this.props.onItemClick) {
       this.props.onItemClick(item.branch, source)
     }
@@ -434,18 +403,6 @@ export class BranchList extends React.Component<IBranchListProps> {
     selectedItem: IBranchListItem | null,
     source: SelectionSource
   ) => {
-    // Don't allow selecting branches that are in use by other worktrees
-    if (selectedItem?.worktreeInUse !== null) {
-      const currentBranch = this.props.currentBranch
-      const isCurrentBranch =
-        currentBranch !== null &&
-        selectedItem !== null &&
-        currentBranch.name === selectedItem.branch.name
-      if (!isCurrentBranch) {
-        return
-      }
-    }
-
     if (this.props.onSelectionChanged) {
       this.props.onSelectionChanged(
         selectedItem ? selectedItem.branch : null,

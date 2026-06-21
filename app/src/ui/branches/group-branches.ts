@@ -1,6 +1,5 @@
 import { Branch, BranchType } from '../../models/branch'
 import { BranchSortOrder } from '../../models/branch-sort-order'
-import { WorktreeEntry } from '../../models/worktree'
 import { IFilterListGroup, IFilterListItem } from '../lib/filter-list'
 
 export type BranchGroupIdentifier = 'default' | 'recent' | 'other'
@@ -9,8 +8,6 @@ export interface IBranchListItem extends IFilterListItem {
   readonly text: ReadonlyArray<string>
   readonly id: string
   readonly branch: Branch
-  /** The worktree where this branch is currently checked out, if any */
-  readonly worktreeInUse: WorktreeEntry | null
 }
 
 /**
@@ -21,41 +18,16 @@ export function isLocalOnlyBranch(branch: Branch): boolean {
   return branch.type === BranchType.Local && (!branch.upstream || branch.isGone)
 }
 
-/**
- * Finds the worktree where a given branch is currently checked out.
- * Returns null if the branch is not checked out in any worktree.
- */
-export function findWorktreeForBranch(
-  branchName: string,
-  worktrees: ReadonlyArray<WorktreeEntry>
-): WorktreeEntry | null {
-  for (const worktree of worktrees) {
-    if (worktree.branch === null) {
-      continue
-    }
-    // Extract branch name from refs/heads/branch-name format
-    const wtBranchName = worktree.branch.replace(/^refs\/heads\//, '')
-    if (wtBranchName === branchName) {
-      return worktree
-    }
-  }
-  return null
-}
-
 export function groupBranches(
   defaultBranch: Branch | null,
+  currentBranch: Branch | null,
   allBranches: ReadonlyArray<Branch>,
   recentBranches: ReadonlyArray<Branch>,
-  allWorktrees: ReadonlyArray<WorktreeEntry>,
   sortOrder: BranchSortOrder
 ): ReadonlyArray<IFilterListGroup<IBranchListItem>> {
   const groups = new Array<IFilterListGroup<IBranchListItem>>()
 
   if (defaultBranch) {
-    const worktreeInUse = findWorktreeForBranch(
-      defaultBranch.name,
-      allWorktrees
-    )
     groups.push({
       identifier: 'default',
       items: [
@@ -63,7 +35,6 @@ export function groupBranches(
           text: [defaultBranch.name],
           id: defaultBranch.name,
           branch: defaultBranch,
-          worktreeInUse,
         },
       ],
     })
@@ -78,12 +49,10 @@ export function groupBranches(
     const recentBranches = new Array<IBranchListItem>()
 
     for (const branch of recentBranchesWithoutDefault) {
-      const worktreeInUse = findWorktreeForBranch(branch.name, allWorktrees)
       recentBranches.push({
         text: [branch.name],
         id: branch.name,
         branch,
-        worktreeInUse,
       })
       recentBranchNames.add(branch.name)
     }
@@ -107,12 +76,10 @@ export function groupBranches(
   )
 
   const remainingItems = sortedRemainingBranches.map(b => {
-    const worktreeInUse = findWorktreeForBranch(b.name, allWorktrees)
     return {
       text: [b.name],
       id: b.name,
       branch: b,
-      worktreeInUse,
     }
   })
   groups.push({
